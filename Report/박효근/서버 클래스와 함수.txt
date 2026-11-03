@@ -1,0 +1,58 @@
+DWORD WINAPI SessionThread(LPVOID arg)                 // 클라이언트마다 1개
+{
+    Session* s = (Session*)arg;
+    char buf[512];
+    while (true) {
+        int len = RecvPacket(s->sock, buf, sizeof(buf));
+        if (len <= 0) break;                               // 끊김 또는 오류
+        PacketHeader* h = (PacketHeader*)buf;
+        if (IsInGameTcp(h->type)) {                        // 100~149: 내 파트 (클라→서버는 CS_GAME_EVENT 하나)
+            if (h->type == CS_GAME_EVENT && s->room)
+                s->room->OnGameEvent(s, ToHost(*(GameEventPacket*)h));
+        } else {                                           // 1~49: 로비 파트
+            Lobby::Handle(s, h);
+        }
+    }
+    OnDisconnect(s);                                       // 게임 중이면 Room에 알림
+    return 0;
+}
+
+enum class RoomState { Waiting, Playing, TimeUp, Ended };
+
+void Room::OnGameEvent(Session* from, GameEventPacket pkt)
+{
+    int me = IndexOf(from), opp = 1 - me;
+    bool forward = false, allClear = false;
+
+    EnterCriticalSection(&cs);
+    bool accept = state == RoomState::Playing ||
+                  (state == RoomState::TimeUp && pkt.timeMs <= timeLimitMs);  // 시간 안에 일어난 일만
+    if (accept && IsValid(states[me], pkt)) {         // 점수 감소, 스테이지 · 블록 범위 검사
+        states[me].score = pkt.score;
+        states[me].lastTimeMs = pkt.timeMs;
+        if (pkt.event == STAGE_START) states[me].stage = pkt.arg8;
+        if (pkt.event == STAGE_CLEAR && pkt.arg8 == 3) states[me].finished = true;
+        allClear = states[0].finished && states[1].finished;
+        forward = true;
+    }
+    LeaveCriticalSection(&cs);
+
+    if (forward) {                                    // 잠금 밖에서 전송
+        pkt.type = SC_OPP_EVENT;
+        sessions[opp]->Send(&pkt);
+    }
+    if (allClear) EndGame(REASON_ALL_CLEAR);
+}
+
+void Room::EndGame(uint8_t reason)                    // 여러 곳에서 불려도 한 번만 실행
+{
+    EnterCriticalSection(&cs);
+    if (state == RoomState::Ended) { LeaveCriticalSection(&cs); return; }
+    state = RoomState::Ended;
+    GameEndPacket res[2];
+    MakeResults(states, reason, res);                 // 각자 기준 결과 (승리 / 패배 / 무승부)
+    LeaveCriticalSection(&cs);
+
+    sessions[0]->Send(&res[0]);
+    sessions[1]->Send(&res[1]);
+}
