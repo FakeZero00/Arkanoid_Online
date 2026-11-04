@@ -1,0 +1,111 @@
+{
+  "SceneName": "Default_Scene",
+  "Objects": [
+    {
+      "name": "MainCamera",
+      "parent": "",
+      "transform": {
+        "position": [ 0.0, 10.0, 10.0 ],
+        "rotation": [ 45.0, 180.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "Camera",
+          "properties": {
+            "fov": 60.0,
+            "nearPlane": 0.1,
+            "farPlane": 1000.0
+          }
+        },
+        {
+          "type": "SceneCamera"
+        }
+      ]
+    },
+	{
+      "name": "MinimapCamera",
+      "parent": "",
+      "transform": {
+        "position": [ 0.0, 20.0, 0.0 ],
+        "rotation": [ 90.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "Camera",
+          "properties": {
+            "fov": 60.0,
+            "nearPlane": 0.1,
+            "farPlane": 1000.0,
+			"viewportRect": [0.75, 0.75, 0.23, 0.23],
+			"backgroundColor": [0.0, 0.0, 0.0, 1.0],
+			"priority": 1
+          }
+        }
+      ]
+    },
+	{
+      "name": "Test",
+      "parent": "",
+      "transform": {
+        "position": [ 0.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Cube",
+            "materials":[
+				"Red"
+			]
+          }
+        },
+		{
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 1.0, 1.0, 1.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
+      "name": "Test2",
+      "parent": "",
+      "transform": {
+        "position": [ 0.0, 5.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Sphere",
+            "materials":[
+				"Blue"
+			]
+          }
+        },
+		{
+          "type": "SphereCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "radius": 1.0,
+			  "isDebug": true
+		  }
+        },
+		{
+          "type": "RigidBody"
+        },
+		{
+			"type": "TestScript"
+		}
+      ]
+    }
+  ]
+}
