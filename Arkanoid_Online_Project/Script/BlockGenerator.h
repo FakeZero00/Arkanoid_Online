@@ -2,16 +2,12 @@
 #include "Component.h"
 #include "../AllComponent.h"
 
-class TestScript : public Component {
+class BlockGenerator : public Component {
 private:
-	Transform* tr;
-	RigidBody* rb;
+	int stage = 0;
 
 public:
 	void Start() override;
-	void Update(float deltaTime) override;
-
-	void OnTriggerStay(Object* other) override;
 
 	static Component* CreateFromJson(Object* obj, const json& props, const map<string, Object*>& spawnedObjects);
 };

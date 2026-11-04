@@ -126,7 +126,7 @@
     <ClInclude Include="Component\MeshSpline.h">
       <Filter>Component\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Script\TestScript.h">
+    <ClInclude Include="Script\BlockGenerator.h">
       <Filter>Script</Filter>
     </ClInclude>
     <ClInclude Include="Component\SphereCollider.h">
@@ -191,7 +191,7 @@
     <ClCompile Include="Component\MeshSpline.cpp">
       <Filter>Component\Source</Filter>
     </ClCompile>
-    <ClCompile Include="Script\TestScript.cpp">
+    <ClCompile Include="Script\BlockGenerator.cpp">
       <Filter>Script</Filter>
     </ClCompile>
     <ClCompile Include="Component\SphereCollider.cpp">

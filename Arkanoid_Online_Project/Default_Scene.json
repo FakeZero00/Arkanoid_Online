@@ -5,8 +5,8 @@
       "name": "MainCamera",
       "parent": "",
       "transform": {
-        "position": [ 0.0, 10.0, 10.0 ],
-        "rotation": [ 45.0, 180.0, 0.0 ],
+        "position": [ 0.0, 20.0, 50.0 ],
+        "rotation": [ 0.0, 180.0, 0.0 ],
         "scale": [ 1.0, 1.0, 1.0 ]
       },
       "components": [
@@ -93,29 +93,18 @@
       ]
     },
 	{
-      "name": "Block",
-      "parent": "",
+      "name": "Block_Generator",
+      "parent": "Stage_Root",
       "transform": {
         "position": [ 0.0, 0.0, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
         "scale": [ 1.0, 1.0, 1.0 ]
       },
       "components": [
-        {
-          "type": "MeshRenderer3D",
-          "properties": {
-            "mesh": "Block",
-            "materials":[
-				"White"
-			]
-          }
-        },
 		{
-          "type": "BoxCollider",
+          "type": "BlockGenerator",
 		  "properties": {
-			  "center": [ 0.0, 0.0, 0.0 ],
-			  "size": [ 1.0, 1.0, 1.0 ],
-			  "isDebug": true
+			  "stage": 1
 		  }
         }
       ]
