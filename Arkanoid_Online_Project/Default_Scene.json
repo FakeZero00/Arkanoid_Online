@@ -24,6 +24,75 @@
       ]
     },
 	{
+      "name": "Stage_Root",
+      "parent": "",
+      "transform": {
+        "position": [ 0.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      }
+    },
+	{
+      "name": "Wall",
+      "parent": "Stage_Root",
+      "transform": {
+        "position": [ 0.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Wall",
+            "materials":[
+				"Gray"
+			]
+          }
+        }
+      ]
+    },
+	{
+      "name": "AI_Door.L",
+      "parent": "Wall",
+      "transform": {
+        "position": [ 4.7, 39.549, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "AI_Door",
+            "materials":[
+				"Gray"
+			]
+          }
+        }
+      ]
+    },
+	{
+      "name": "AI_Door.R",
+      "parent": "Wall",
+      "transform": {
+        "position": [ -4.7, 39.549, 0.0 ],
+        "rotation": [ 0.0, 0.0, 180.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "AI_Door",
+            "materials":[
+				"Gray"
+			]
+          }
+        }
+      ]
+    },
+	{
       "name": "Block",
       "parent": "",
       "transform": {

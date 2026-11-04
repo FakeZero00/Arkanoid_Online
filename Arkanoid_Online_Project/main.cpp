@@ -88,6 +88,8 @@ int main(int argc, char** argv) {
 	meshChache["Sphere"] = new Mesh("Default_Sphere.obj");
 	meshChache["Torus"] = new Mesh("Default_Torus.obj");
 	meshChache["Block"] = new Mesh("Block.obj");
+	meshChache["Wall"] = new Mesh("Wall.obj");
+	meshChache["AI_Door"] = new Mesh("AI_Door.obj");
 
 	Material* white = new Material(shaders["Standard"]);
 	white->SetVec4("tColor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -109,6 +111,8 @@ int main(int argc, char** argv) {
 	silver->SetVec4("tColor", vec4(0.6f, 0.6f, 0.6f, 1.0f));
 	Material* gold = new Material(shaders["Standard"]);
 	gold->SetVec4("tColor", vec4(0.72f, 0.68f, 0.0f, 1.0f));
+	Material* gray = new Material(shaders["Standard"]);
+	gray->SetVec4("tColor", vec4(0.72f, 0.72f, 0.72f, 1.0f));
 
 	materialChache["LocalPosColor"] = new Material(shaders["LocalPosColor"]);
 	materialChache["White"] = white;
@@ -121,6 +125,7 @@ int main(int argc, char** argv) {
 	materialChache["Yellow"] = yellow;
 	materialChache["Silver"] = silver;
 	materialChache["Gold"] = gold;
+	materialChache["Gray"] = gray;
 
 	//////////////////사용자 정의 초기화////////////////////
 

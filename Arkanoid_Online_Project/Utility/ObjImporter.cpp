@@ -30,30 +30,28 @@ vector<GLuint> GetIndicesFromObj(vector<vector<string>>& objData) {
 	for (auto& line : objData) {
 		if (line.empty()) continue;
 		if (line[0] == "f") {
-			//삼각형 페이스
-			if (line.size() == 3 + 1) {
-				int idx1 = line[1].find('/') != string::npos ? stoi(line[1].substr(0, line[1].find('/'))) - 1 : stoi(line[1]) - 1;
-				int idx2 = line[2].find('/') != string::npos ? stoi(line[2].substr(0, line[2].find('/'))) - 1 : stoi(line[2]) - 1;
-				int idx3 = line[3].find('/') != string::npos ? stoi(line[3].substr(0, line[3].find('/'))) - 1 : stoi(line[3]) - 1;
+			size_t vertexCount = line.size() - 1; // 'f'를 제외한 페이스 정점 개수
+			if (vertexCount < 3) continue;
 
-				indices.push_back(static_cast<GLuint>(idx1));
-				indices.push_back(static_cast<GLuint>(idx2));
-				indices.push_back(static_cast<GLuint>(idx3));
+			// 1. 해당 페이스의 모든 정점 인덱스 파싱
+			vector<GLuint> faceIndices;
+			faceIndices.reserve(vertexCount);
+
+			for (size_t i = 1; i <= vertexCount; ++i) {
+				size_t slashPos = line[i].find('/');
+				int idx = (slashPos != string::npos)
+					? stoi(line[i].substr(0, slashPos)) - 1
+					: stoi(line[i]) - 1;
+				faceIndices.push_back(static_cast<GLuint>(idx));
 			}
-			//사각형 페이스
-			else if (line.size() == 4 + 1) {
-				int idx1 = line[1].find('/') != string::npos ? stoi(line[1].substr(0, line[1].find('/'))) - 1 : stoi(line[1]) - 1;
-				int idx2 = line[2].find('/') != string::npos ? stoi(line[2].substr(0, line[2].find('/'))) - 1 : stoi(line[2]) - 1;
-				int idx3 = line[3].find('/') != string::npos ? stoi(line[3].substr(0, line[3].find('/'))) - 1 : stoi(line[3]) - 1;
-				int idx4 = line[4].find('/') != string::npos ? stoi(line[4].substr(0, line[4].find('/'))) - 1 : stoi(line[4]) - 1;
 
-				indices.push_back(static_cast<GLuint>(idx1));
-				indices.push_back(static_cast<GLuint>(idx2));
-				indices.push_back(static_cast<GLuint>(idx3));
-				
-				indices.push_back(static_cast<GLuint>(idx1));
-				indices.push_back(static_cast<GLuint>(idx3));
-				indices.push_back(static_cast<GLuint>(idx4));
+			// 2. 부채꼴 삼각 분할 (Triangle Fan)
+			// N개의 정점을 가진 다각형을 (N-2)개의 삼각형으로 분할
+			// (v0, v1, v2), (v0, v2, v3), (v0, v3, v4)...
+			for (size_t i = 1; i + 1 < faceIndices.size(); ++i) {
+				indices.push_back(faceIndices[0]);
+				indices.push_back(faceIndices[i]);
+				indices.push_back(faceIndices[i + 1]);
 			}
 		}
 	}
