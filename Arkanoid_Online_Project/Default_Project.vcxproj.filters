@@ -1,0 +1,233 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Component">
+      <UniqueIdentifier>{985a76fe-ba02-4cf2-8fde-1357aebf0d82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\Header">
+      <UniqueIdentifier>{c9d6f71a-e0e6-44b5-ba28-2943bd19d8f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\Source">
+      <UniqueIdentifier>{82655c1a-091a-4898-88ee-617791dd5867}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data_Structure">
+      <UniqueIdentifier>{3b973af3-3c3d-4691-bbd8-0d084ff4f0b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data_Structure\Header">
+      <UniqueIdentifier>{51536bdc-0b37-4b8a-bc62-3ab2fadc65ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data_Structure\Source">
+      <UniqueIdentifier>{d8329631-da2a-4ccb-bcac-a979a004f414}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{b88e2a7d-82df-4c06-9a27-427b21fea877}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{da23bed2-30c6-4d87-923f-0ebcd98b3644}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Header">
+      <UniqueIdentifier>{dfc07291-a2aa-489f-a6d9-70ec91a7d031}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Source">
+      <UniqueIdentifier>{6329ec3c-95ea-4ded-8ef7-5699dbd5324d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Script">
+      <UniqueIdentifier>{c5e548df-2db7-4b90-b137-fce0d8cd9d25}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Component\MeshRenderer3D.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\Transform.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\AppContext.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\Material.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\Mesh.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\Object.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\ColliderManager.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\InputManager.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\ShaderManager.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Common.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\Scene.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\Collider.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\Component.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\BoxCollider.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\Spline.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Default_Scene.h">
+      <Filter>리소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\Camera.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\SceneCamera.h">
+      <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\ScreenSize.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\ObjImporter.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\Vertex.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\SceneLoader.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\json.hpp">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="AllComponent.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="AllDataStructure.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\MeshSpline.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\TestScript.h">
+      <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\SphereCollider.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\RigidBody.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Data_Structure\ForceMode.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Component\MeshRenderer3D.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\Transform.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Data_Structure\Mesh.cpp">
+      <Filter>Data_Structure\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Data_Structure\Object.cpp">
+      <Filter>Data_Structure\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\ColliderManager.cpp">
+      <Filter>Utility\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\ShaderManager.cpp">
+      <Filter>Utility\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Data_Structure\Scene.cpp">
+      <Filter>Data_Structure\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\BoxCollider.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\Spline.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Default_Scene.cpp">
+      <Filter>리소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Data_Structure\Material.cpp">
+      <Filter>Data_Structure\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\Camera.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\SceneCamera.cpp">
+      <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\ObjImporter.cpp">
+      <Filter>Utility\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\SceneLoader.cpp">
+      <Filter>Utility\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\MeshSpline.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\TestScript.cpp">
+      <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\SphereCollider.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\RigidBody.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Debug_fragment.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Debug_vertex.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Spline_fragment.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Spline_vertex.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Standard_fragment.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Standard_vertex.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\LocalPosColor_fragment.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\LocalPosColor_vertex.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Default_Scene.json">
+      <Filter>리소스 파일</Filter>
+    </None>
+  </ItemGroup>
+</Project>
