@@ -90,6 +90,8 @@ int main(int argc, char** argv) {
 	meshChache["Block"] = new Mesh("Block.obj");
 	meshChache["Wall"] = new Mesh("Wall.obj");
 	meshChache["AI_Door"] = new Mesh("AI_Door.obj");
+	meshChache["Bous"] = new Mesh("Bous.obj");
+	meshChache["Ball"] = new Mesh("Ball.obj");
 
 	Material* white = new Material(shaders["Standard"]);
 	white->SetVec4("tColor", vec4(1.0f, 1.0f, 1.0f, 1.0f));

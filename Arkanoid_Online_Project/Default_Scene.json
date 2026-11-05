@@ -108,6 +108,62 @@
 		  }
         }
       ]
+    },
+	{
+      "name": "Bous",
+      "parent": "Stage_Root",
+      "transform": {
+        "position": [ 0.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+		{
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Bous",
+            "materials":[
+				"Gray"
+			]
+          }
+        },
+		{
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 1.0, 1.0, 1.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
+      "name": "Ball",
+      "parent": "Stage_Root",
+      "transform": {
+        "position": [ 0.0, 1.7, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+		{
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Ball",
+            "materials":[
+				"Cyan"
+			]
+          }
+        },
+		{
+          "type": "SphereCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "radius": 0.9,
+			  "isDebug": true
+		  }
+        }
+      ]
     }
   ]
 }
