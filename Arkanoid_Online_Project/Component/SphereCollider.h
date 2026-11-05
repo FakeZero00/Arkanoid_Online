@@ -1,9 +1,13 @@
 #pragma once
 #include "Collider.h"
+#include "Transform.h"
 #include <gl/glm/glm.hpp>
 using namespace glm;
 
 class SphereCollider : public Collider {
+private:
+	Transform* tr;
+
 public:
 	vec3 center;
 	float radius;
