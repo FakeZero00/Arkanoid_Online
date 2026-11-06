@@ -53,6 +53,63 @@
       ]
     },
 	{
+      "name": "WallCol.L",
+      "parent": "Wall",
+      "transform": {
+        "position": [ -16.83, 19.55, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 2.0, 40.0, 2.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
+      "name": "WallCol.R",
+      "parent": "Wall",
+      "transform": {
+        "position": [ 16.83, 19.55, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 2.0, 40.0, 2.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
+      "name": "WallCol.T",
+      "parent": "Wall",
+      "transform": {
+        "position": [ 0.0, 39.55, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 31.0, 2.0, 2.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
       "name": "AI_Door.L",
       "parent": "Wall",
       "transform": {
@@ -134,6 +191,16 @@
 			  "size": [ 1.0, 1.0, 1.0 ],
 			  "isDebug": true
 		  }
+        },
+		{
+          "type": "RigidBody",
+		  "properties": {
+			  "useGravity": false,
+			  "isKinematic": false
+		  }
+        },
+		{
+          "type": "BousController"
         }
       ]
     },
