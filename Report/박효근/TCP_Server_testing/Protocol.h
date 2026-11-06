@@ -23,6 +23,7 @@ enum InGameTcpType : uint16_t {
     SC_TIME_SYNC,                        // 서버 → 클라이언트 : 남은 시간
     SC_GAME_END,                         // 서버 → 클라이언트 : 게임 결과
     SC_OPP_LEFT,                         // 서버 → 클라이언트 : 상대 연결 끊김
+    SC_GAME_START,                       // 서버 → 클라이언트 : 게임 시작 (시드, 제한시간, 대기 시간)
 };
 
 enum EventType : uint8_t {
@@ -68,12 +69,19 @@ struct GameEndPacket : PacketHeader {
     uint32_t myScore;
     uint32_t oppScore;
 };
+
+struct GameStartPacket : PacketHeader {
+    uint32_t seed;                 // 아이템 배치용 랜덤 시드 (두 사람 같은 값)
+    uint16_t timeLimitSec;         // 제한시간(초)
+    uint16_t countdownMs;          // 받은 뒤 이만큼 기다렸다가 timeMs = 0으로 시작
+};
 #pragma pack(pop)
 
 static_assert(sizeof(PacketHeader)    == 4,  "PacketHeader 크기 확인");
 static_assert(sizeof(GameEventPacket) == 20, "GameEventPacket 크기 확인");
 static_assert(sizeof(TimeSyncPacket)  == 6,  "TimeSyncPacket 크기 확인");
 static_assert(sizeof(GameEndPacket)   == 14, "GameEndPacket 크기 확인");
+static_assert(sizeof(GameStartPacket) == 12, "GameStartPacket 크기 확인");
 
 // 패킷 ---------------------------------------------------------------------------------
 inline GameEventPacket MakeGameEvent(EventType e, uint32_t timeMs, uint32_t score,
@@ -109,6 +117,17 @@ inline GameEndPacket MakeGameEnd(GameResult result, EndReason reason, uint32_t m
     p.reason   = reason;
     p.myScore  = myScore;
     p.oppScore = oppScore;
+    return p;
+}
+
+inline GameStartPacket MakeGameStart(uint32_t seed, uint16_t timeLimitSec, uint16_t countdownMs)
+{
+    GameStartPacket p{};
+    p.size         = sizeof(GameStartPacket);
+    p.type         = SC_GAME_START;
+    p.seed         = seed;
+    p.timeLimitSec = timeLimitSec;
+    p.countdownMs  = countdownMs;
     return p;
 }
 
@@ -155,6 +174,21 @@ inline void ToHost(GameEndPacket& p)
     ToHost(static_cast<PacketHeader&>(p));
     p.myScore  = ntohl(p.myScore);
     p.oppScore = ntohl(p.oppScore);
+}
+
+inline void ToNetwork(GameStartPacket& p)
+{
+    ToNetwork(static_cast<PacketHeader&>(p));
+    p.seed         = htonl(p.seed);
+    p.timeLimitSec = htons(p.timeLimitSec);
+    p.countdownMs  = htons(p.countdownMs);
+}
+inline void ToHost(GameStartPacket& p)
+{
+    ToHost(static_cast<PacketHeader&>(p));
+    p.seed         = ntohl(p.seed);
+    p.timeLimitSec = ntohs(p.timeLimitSec);
+    p.countdownMs  = ntohs(p.countdownMs);
 }
 
 // 송신 -------------------------------------------------------------------------------------------------
