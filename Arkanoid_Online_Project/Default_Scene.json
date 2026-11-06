@@ -229,6 +229,9 @@
 			  "radius": 0.9,
 			  "isDebug": true
 		  }
+        },
+		{
+          "type": "BallController"
         }
       ]
     }
