@@ -24,9 +24,17 @@ int main()
     int fail = 0;
     char buf[MAX_PACKET_SIZE];
 
-    GameEventPacket ev = MakeGameEvent(STAGE_CLEAR, 123456, 98765, 3, 2, -7);
+    SendTyped(s, MakeGameStart(0xA1B2C3D4, 180, 3000));
+    int n = RecvPacket(c, buf, sizeof(buf));
+    GameStartPacket gs{};
+    if (n != 12 || PeekType(buf) != SC_GAME_START || !ReadTyped(buf, n, gs) ||
+        gs.seed != 0xA1B2C3D4 || gs.timeLimitSec != 180 || gs.countdownMs != 3000) fail++;
+    printf("start : n=%d type=%u seed=%08X limit=%u countdown=%u\n",
+           n, gs.type, gs.seed, gs.timeLimitSec, gs.countdownMs);
+
+    GameEventPacket ev =MakeGameEvent(STAGE_CLEAR, 123456, 98765, 3, 2, -7);
     SendTyped(c, ev);
-    int n = RecvPacket(s, buf, sizeof(buf));
+    n = RecvPacket(s, buf, sizeof(buf));
     GameEventPacket got{};
     if (n != 20 || PeekType(buf) != CS_GAME_EVENT || !ReadTyped(buf, n, got) || memcmp(&got, &ev, sizeof(ev)) != 0) fail++;
     printf("event : n=%d type=%u timeMs=%u arg8=%u arg16=%u arg32=%d score=%u\n",
