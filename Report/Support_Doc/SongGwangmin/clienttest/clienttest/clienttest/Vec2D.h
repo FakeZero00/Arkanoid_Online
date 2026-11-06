@@ -15,3 +15,8 @@ public:
     // º¤ÅÍ ½ºÄ®¶ó °ö¼À ¿¬»êÀÚ (¼Óµµ * deltaTime¿ë)
     Vec2D operator*(float scalar) const;
 };
+
+struct Vec2DPacket {
+    float x;
+    float y;
+};
