@@ -231,6 +231,13 @@
 		  }
         },
 		{
+          "type": "RigidBody",
+		  "properties": {
+			  "useGravity": false,
+			  "isKinematic": true
+		  }
+        },
+		{
           "type": "BallController"
         }
       ]

@@ -11,9 +11,14 @@ private:
 
 	float speed = 15.0f;
 
+	bool isCatched = true;
+	vec3 velocity = vec3(0.0f, 0.0f, 0.0f);
+
 public:
 	void Start() override;
 	void Update(float deltaTime) override;
+
+	void OnTriggerEnter(Object* other) override;
 
 	static Component* CreateFromJson(Object* obj, const json& props, const map<string, Object*>& spawnedObjects);
 };

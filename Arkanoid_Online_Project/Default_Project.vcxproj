@@ -43,6 +43,7 @@
     <ClInclude Include="Data_Structure\Vertex.h" />
     <ClInclude Include="Default_Scene.h" />
     <ClInclude Include="Script\BallController.h" />
+    <ClInclude Include="Script\BlockBehavior.h" />
     <ClInclude Include="Script\BousController.h" />
     <ClInclude Include="Script\SceneCamera.h" />
     <ClInclude Include="Script\BlockGenerator.h" />
@@ -68,6 +69,7 @@
     <ClCompile Include="Default_Scene.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Script\BallController.cpp" />
+    <ClCompile Include="Script\BlockBehavior.cpp" />
     <ClCompile Include="Script\BousController.cpp" />
     <ClCompile Include="Script\SceneCamera.cpp" />
     <ClCompile Include="Script\BlockGenerator.cpp" />

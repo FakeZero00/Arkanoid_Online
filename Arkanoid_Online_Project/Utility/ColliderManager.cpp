@@ -333,7 +333,14 @@ void ColliderManager::Update() {
 					}
 
 					//충돌 해결
-					ResolveCollision(colA, colB, normal, penetration);
+					RigidBody* rbA = colA->gameObject->GetComponent<RigidBody>();
+					RigidBody* rbB = colB->gameObject->GetComponent<RigidBody>();
+
+					// 둘 중 하나라도 순수 물리(non-kinematic) 리지드바디일 때만 물리 반발력 적용
+					bool canResolvePhysics = (rbA && !rbA->isKinematic) || (rbB && !rbB->isKinematic);
+					if (canResolvePhysics) {
+						ResolveCollision(colA, colB, normal, penetration);
+					}
 				}
 
 				//A 입장에서의 B와 충돌 처리
@@ -491,8 +498,8 @@ void ColliderManager::ResolveCollision(Collider* colA, Collider* colB, vec3 coll
 	vec3 impulse = j * collisionNormal;
 
 	//속도 적용
-	if (invMassA > 0.0f) rbA->velocity -= invMassA * impulse;
-	if (invMassB > 0.0f) rbB->velocity += invMassB * impulse;
+	if (invMassA > 0.0f && !rbA->isKinematic) rbA->velocity -= invMassA * impulse;
+	if (invMassB > 0.0f && !rbB->isKinematic) rbB->velocity += invMassB * impulse;
 
 	//마찰력 적용
 	ResolveCollisionWithFriction(colA, colB, collisionNormal);
