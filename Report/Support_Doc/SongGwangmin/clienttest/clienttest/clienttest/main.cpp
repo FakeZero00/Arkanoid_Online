@@ -26,9 +26,24 @@ struct ConsoleState {
     int sendError = 0;
 };
 
-int readInputAndSend(SOCKET sock, const sockaddr_in& serveraddr, ConsoleState& state) {
-    Vec2D position(0.0f, 0.0f);
-    const float speed = 10.0f;
+void updatePosition(Vec2D& position, const Vec2D& direction, float deltaTime) {
+    constexpr float speed = 10.0f;
+    position += direction * speed * deltaTime;
+}
+
+int sendPosition(SOCKET sock, const sockaddr_in& serveraddr, const Vec2D& position) {
+    const Vec2DPacket packet{position.x, position.y};
+
+    if (sendto(sock, reinterpret_cast<const char*>(&packet), sizeof(packet), 0,
+        reinterpret_cast<const sockaddr*>(&serveraddr), sizeof(serveraddr)) == SOCKET_ERROR) {
+        return WSAGetLastError();
+    }
+
+    return 0;
+}
+
+int readInputAndSend(SOCKET sock, const sockaddr_in& serveraddr,
+    Vec2D& position, ConsoleState& state) {
     auto previousTime = std::chrono::steady_clock::now();
 
     while (true) {
@@ -47,20 +62,17 @@ int readInputAndSend(SOCKET sock, const sockaddr_in& serveraddr, ConsoleState& s
         if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) return 0;
 
         if (direction.x != 0.0f || direction.y != 0.0f) {
-            position += direction * speed * deltaTime;
-            const Vec2DPacket packet{position.x, position.y};
+            updatePosition(position, direction, deltaTime);
 
             {
                 std::lock_guard<std::mutex> lock(state.mutex);
-                state.latest = {packet, deltaTime};
+                state.latest = {{position.x, position.y}, deltaTime};
                 state.hasUpdate = true;
             }
             state.ready.notify_one();
 
-            if (sendto(sock, reinterpret_cast<const char*>(&packet), sizeof(packet), 0,
-                reinterpret_cast<const sockaddr*>(&serveraddr), sizeof(serveraddr)) == SOCKET_ERROR) {
-                return WSAGetLastError();
-            }
+            const int sendError = sendPosition(sock, serveraddr, position);
+            if (sendError != 0) return sendError;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
@@ -118,10 +130,11 @@ int main() {
     inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
     serveraddr.sin_port = htons(SERVERPORT);
 
+    Vec2D position;
     ConsoleState state;
     std::thread consoleThread([&] { printToConsole(state); });
 
-    const int sendError = readInputAndSend(sock, serveraddr, state);
+    const int sendError = readInputAndSend(sock, serveraddr, position, state);
 
     {
         std::lock_guard<std::mutex> lock(state.mutex);

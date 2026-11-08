@@ -48,7 +48,7 @@ int receiveAndStore(SOCKET sock, ConsoleState& state) {
     }
 }
 
-void printToConsole(ConsoleState& state) {
+void printToConsole(ConsoleState& state, Vec2D& PlayerBous) {
     std::unique_lock<std::mutex> lock(state.mutex);
 
     while (true) {
@@ -60,10 +60,13 @@ void printToConsole(ConsoleState& state) {
         state.pending.pop();
         lock.unlock();
 
+        PlayerBous.x = received.position.x;
+        PlayerBous.y = received.position.y;
+
         char addr[INET_ADDRSTRLEN]{};
         inet_ntop(AF_INET, &received.sender.sin_addr, addr, sizeof(addr));
         printf("[UDP/%s:%d] (X: %f, Y: %f)\n", addr, ntohs(received.sender.sin_port),
-            received.position.x, received.position.y);
+            PlayerBous.x, PlayerBous.y);
         fflush(stdout);
 
         lock.lock();
@@ -95,7 +98,8 @@ int main() {
         err_quit("bind()");
 
     ConsoleState state;
-    std::thread consoleThread([&] { printToConsole(state); });
+    Vec2D PlayerBous;
+    std::thread consoleThread([&] { printToConsole(state, PlayerBous); });
 
     const int receiveError = receiveAndStore(sock, state);
 
