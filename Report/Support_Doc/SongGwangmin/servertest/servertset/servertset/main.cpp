@@ -1,67 +1,114 @@
-#include <iostream>
-#include <chrono>
+#include "Common.h"
+#include "Vec2D.h"
+
+#include <condition_variable>
+#include <mutex>
+#include <queue>
 #include <thread>
 
-#include "Vec2D.h" // Vec2D 클래스 정의 포함
-#include "Common.h"
+constexpr unsigned short SERVERPORT = 9000;
 
-#include <Windows.h> // Windows API 헤더 - Common.h보다 늦게 포함해야함
+struct ReceivedPosition {
+    Vec2DPacket position;
+    sockaddr_in sender;
+};
 
-char* SERVERIP = (char*)"127.0.0.1";
-#define SERVERPORT 9000
-#define BUFSIZE    512
+struct ConsoleState {
+    std::mutex mutex;
+    std::condition_variable ready;
 
+    std::queue<ReceivedPosition> pending;
+
+    bool finished = false;
+    int receiveError = 0;
+};
+
+int receiveAndStore(SOCKET sock, ConsoleState& state) {
+    while (true) {
+        ReceivedPosition received{};
+        int addrlen = sizeof(received.sender);
+        constexpr int packetSize = sizeof(Vec2DPacket);
+
+        const int bytesReceived = recvfrom(sock, reinterpret_cast<char*>(&received.position),
+            packetSize, 0, reinterpret_cast<sockaddr*>(&received.sender), &addrlen);
+
+        if (bytesReceived == SOCKET_ERROR) {
+            const int error = WSAGetLastError();
+            if (error == WSAEMSGSIZE) continue;
+            return error;
+        }
+
+        if (bytesReceived != packetSize) continue;
+
+        {
+            std::lock_guard<std::mutex> lock(state.mutex);
+            state.pending.push(received);
+        }
+        state.ready.notify_one();
+    }
+}
+
+void printToConsole(ConsoleState& state) {
+    std::unique_lock<std::mutex> lock(state.mutex);
+
+    while (true) {
+        state.ready.wait(lock, [&] { return !state.pending.empty() || state.finished; });
+
+        if (state.pending.empty()) break;
+
+        const ReceivedPosition received = state.pending.front();
+        state.pending.pop();
+        lock.unlock();
+
+        char addr[INET_ADDRSTRLEN]{};
+        inet_ntop(AF_INET, &received.sender.sin_addr, addr, sizeof(addr));
+        printf("[UDP/%s:%d] (X: %f, Y: %f)\n", addr, ntohs(received.sender.sin_port),
+            received.position.x, received.position.y);
+        fflush(stdout);
+
+        lock.lock();
+    }
+
+    const int receiveError = state.receiveError;
+    lock.unlock();
+
+    if (receiveError != 0) {
+        WSASetLastError(receiveError);
+        err_display("recvfrom()");
+    }
+}
 
 int main() {
-	
-	int retval;
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+        return 1;
 
-	// 윈속 초기화
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
-		return 1;
+    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == INVALID_SOCKET) err_quit("socket()");
 
-	// 소켓 생성
-	SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock == INVALID_SOCKET) err_quit("socket()");
+    sockaddr_in serveraddr{};
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serveraddr.sin_port = htons(SERVERPORT);
 
-	// bind()
-	struct sockaddr_in serveraddr;
-	memset(&serveraddr, 0, sizeof(serveraddr));
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serveraddr.sin_port = htons(SERVERPORT);
-	retval = bind(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-	if (retval == SOCKET_ERROR) err_quit("bind()");
+    if (bind(sock, reinterpret_cast<const sockaddr*>(&serveraddr), sizeof(serveraddr)) == SOCKET_ERROR)
+        err_quit("bind()");
 
-	// 데이터 통신에 사용할 변수
-	struct sockaddr_in clientaddr;
-	int addrlen;
-	char buf[BUFSIZE + 1];
+    ConsoleState state;
+    std::thread consoleThread([&] { printToConsole(state); });
 
-	Vec2D position(0.0f, 0.0f); // 초기 위치
+    const int receiveError = receiveAndStore(sock, state);
 
+    {
+        std::lock_guard<std::mutex> lock(state.mutex);
+        state.receiveError = receiveError;
+        state.finished = true;
+    }
 
-	Vec2DPacket buffer;
+    state.ready.notify_one();
+    consoleThread.join();
 
-	// 클라이언트와 데이터 통신
-	while (1) {
-		// 데이터 받기
-		addrlen = sizeof(clientaddr);
-		retval = recvfrom(sock, (char*)&buffer, BUFSIZE, 0,
-			(struct sockaddr*)&clientaddr, &addrlen);
-		if (retval == SOCKET_ERROR) {
-			err_display("recvfrom()");
-			break;
-		}
-
-		// 받은 데이터 출력
-		char addr[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
-		printf("[UDP/%s:%d] (X: %f, Y: %f)\n", addr, ntohs(clientaddr.sin_port), buffer.x, buffer.y);
-
-		
-	}
-
-	return 0;
+    closesocket(sock);
+    WSACleanup();
+    return 0;
 }
