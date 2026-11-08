@@ -5,25 +5,35 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
-#include <thread>
+#include <queue>
 
 constexpr char SERVERIP[] = "127.0.0.1";
 constexpr unsigned short SERVERPORT = 9000;
 
 struct PositionUpdate {
-    Vec2DPacket position;
+    Vec2D position;
     float deltaTime;
 };
 
-struct ConsoleState {
+struct ClientState {
     std::mutex mutex;
-    std::condition_variable ready;
+    std::condition_variable sendReady;
+    std::condition_variable consoleReady;
 
+    std::queue<Vec2D> pendingPositions;
     PositionUpdate latest{};
     bool hasUpdate = false;
 
-    bool finished = false;
+    bool inputFinished = false;
+    bool sendFinished = false;
     int sendError = 0;
+};
+
+struct ClientThreadArgs {
+    SOCKET sock;
+    const sockaddr_in& serveraddr;
+    Vec2D& position;
+    ClientState& state;
 };
 
 void updatePosition(Vec2D& position, const Vec2D& direction, float deltaTime) {
@@ -42,8 +52,11 @@ int sendPosition(SOCKET sock, const sockaddr_in& serveraddr, const Vec2D& positi
     return 0;
 }
 
-int readInputAndSend(SOCKET sock, const sockaddr_in& serveraddr,
-    Vec2D& position, ConsoleState& state) {
+DWORD WINAPI readInput(LPVOID parameter) {
+    const auto& args = *static_cast<ClientThreadArgs*>(parameter);
+    Vec2D& position = args.position;
+    ClientState& state = args.state;
+
     auto previousTime = std::chrono::steady_clock::now();
 
     while (true) {
@@ -59,27 +72,69 @@ int readInputAndSend(SOCKET sock, const sockaddr_in& serveraddr,
         if (GetAsyncKeyState(VK_LEFT) & 0x8000)  direction.x -= 1.0f;
         if (GetAsyncKeyState(VK_RIGHT) & 0x8000) direction.x += 1.0f;
 
-        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) return 0;
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) break;
 
-        if (direction.x != 0.0f || direction.y != 0.0f) {
-            updatePosition(position, direction, deltaTime);
+        {
+            std::unique_lock<std::mutex> lock(state.mutex);
+            if (state.sendFinished) break;
 
-            {
-                std::lock_guard<std::mutex> lock(state.mutex);
-                state.latest = {{position.x, position.y}, deltaTime};
+            if (direction.x != 0.0f || direction.y != 0.0f) {
+                updatePosition(position, direction, deltaTime);
+                state.pendingPositions.push(position);
+                state.latest = {position, deltaTime};
                 state.hasUpdate = true;
-            }
-            state.ready.notify_one();
+                lock.unlock();
 
-            const int sendError = sendPosition(sock, serveraddr, position);
-            if (sendError != 0) return sendError;
+                state.sendReady.notify_one();
+                state.consoleReady.notify_one();
+            }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        Sleep(16);
     }
+
+    {
+        std::lock_guard<std::mutex> lock(state.mutex);
+        state.inputFinished = true;
+    }
+    state.sendReady.notify_one();
+    return 0;
 }
 
-void printToConsole(ConsoleState& state) {
+DWORD WINAPI sendPositions(LPVOID parameter) {
+    const auto& args = *static_cast<ClientThreadArgs*>(parameter);
+    ClientState& state = args.state;
+
+    std::unique_lock<std::mutex> lock(state.mutex);
+
+    while (true) {
+        state.sendReady.wait(lock, [&] { return !state.pendingPositions.empty() || state.inputFinished; });
+
+        if (state.pendingPositions.empty()) break;
+
+        const Vec2D position = state.pendingPositions.front();
+        state.pendingPositions.pop();
+        lock.unlock();
+
+        const int sendError = sendPosition(args.sock, args.serveraddr, position);
+
+        lock.lock();
+        if (sendError != 0) {
+            state.sendError = sendError;
+            break;
+        }
+    }
+
+    state.sendFinished = true;
+    lock.unlock();
+    state.consoleReady.notify_one();
+    return 0;
+}
+
+DWORD WINAPI printToConsole(LPVOID parameter) {
+    const auto& args = *static_cast<ClientThreadArgs*>(parameter);
+    ClientState& state = args.state;
+
     puts("=========================================\n"
         " deltaTime 기반 2D Vector 이동 테스트\n"
         " 방향키(UP, DOWN, LEFT, RIGHT)로 이동\n"
@@ -90,7 +145,7 @@ void printToConsole(ConsoleState& state) {
     std::unique_lock<std::mutex> lock(state.mutex);
 
     while (true) {
-        state.ready.wait(lock, [&] { return state.hasUpdate || state.finished; });
+        state.consoleReady.wait(lock, [&] { return state.hasUpdate || state.sendFinished; });
 
         if (!state.hasUpdate) break;
 
@@ -115,6 +170,42 @@ void printToConsole(ConsoleState& state) {
     } else {
         puts("\n프로그램을 종료합니다.");
     }
+
+    return 0;
+}
+
+int runClientThreads(SOCKET sock, const sockaddr_in& serveraddr, Vec2D& position) {
+    ClientState state;
+    ClientThreadArgs args{sock, serveraddr, position, state};
+
+    // Start input last so a creation failure can stop the waiting threads.
+    const LPTHREAD_START_ROUTINE workers[]{sendPositions, printToConsole, readInput};
+    HANDLE threads[_countof(workers)]{};
+    DWORD started = 0;
+
+    while (started < _countof(workers)) {
+        threads[started] = CreateThread(nullptr, 0, workers[started], &args, 0, nullptr);
+        if (threads[started] == nullptr) break;
+        ++started;
+    }
+
+    if (started < _countof(workers)) {
+        const DWORD error = GetLastError();
+        {
+            std::lock_guard<std::mutex> lock(state.mutex);
+            state.inputFinished = true;
+        }
+
+        state.sendReady.notify_one();
+        fprintf(stderr, "[CreateThread()] %lu\n", error);
+    }
+
+    for (DWORD i = 0; i < started; ++i) {
+        WaitForSingleObject(threads[i], INFINITE);
+        CloseHandle(threads[i]);
+    }
+
+    return started == _countof(workers) ? 0 : 1;
 }
 
 int main() {
@@ -131,21 +222,9 @@ int main() {
     serveraddr.sin_port = htons(SERVERPORT);
 
     Vec2D position;
-    ConsoleState state;
-    std::thread consoleThread([&] { printToConsole(state); });
-
-    const int sendError = readInputAndSend(sock, serveraddr, position, state);
-
-    {
-        std::lock_guard<std::mutex> lock(state.mutex);
-        state.sendError = sendError;
-        state.finished = true;
-    }
-
-    state.ready.notify_one();
-    consoleThread.join();
+    const int exitCode = runClientThreads(sock, serveraddr, position);
 
     closesocket(sock);
     WSACleanup();
-    return 0;
+    return exitCode;
 }

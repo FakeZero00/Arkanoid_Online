@@ -1,10 +1,10 @@
 #include "Common.h"
 #include "Vec2D.h"
 
+#include <Windows.h>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
-#include <thread>
 
 constexpr unsigned short SERVERPORT = 9000;
 
@@ -23,19 +23,40 @@ struct ConsoleState {
     int receiveError = 0;
 };
 
-int receiveAndStore(SOCKET sock, ConsoleState& state) {
+struct ServerThreadArgs {
+    SOCKET sock;
+    ConsoleState& state;
+    Vec2D& PlayerBous;
+};
+
+void finishReceiving(ConsoleState& state, int receiveError) {
+    {
+        std::lock_guard<std::mutex> lock(state.mutex);
+        state.receiveError = receiveError;
+        state.finished = true;
+    }
+
+    state.ready.notify_one();
+}
+
+DWORD WINAPI receiveAndStore(LPVOID parameter) {
+    const auto& args = *static_cast<ServerThreadArgs*>(parameter);
+    ConsoleState& state = args.state;
+
     while (true) {
         ReceivedPosition received{};
         int addrlen = sizeof(received.sender);
         constexpr int packetSize = sizeof(Vec2DPacket);
 
-        const int bytesReceived = recvfrom(sock, reinterpret_cast<char*>(&received.position),
+        const int bytesReceived = recvfrom(args.sock, reinterpret_cast<char*>(&received.position),
             packetSize, 0, reinterpret_cast<sockaddr*>(&received.sender), &addrlen);
 
         if (bytesReceived == SOCKET_ERROR) {
             const int error = WSAGetLastError();
             if (error == WSAEMSGSIZE) continue;
-            return error;
+
+            finishReceiving(state, error);
+            return 0;
         }
 
         if (bytesReceived != packetSize) continue;
@@ -48,7 +69,11 @@ int receiveAndStore(SOCKET sock, ConsoleState& state) {
     }
 }
 
-void printToConsole(ConsoleState& state, Vec2D& PlayerBous) {
+DWORD WINAPI printToConsole(LPVOID parameter) {
+    const auto& args = *static_cast<ServerThreadArgs*>(parameter);
+    ConsoleState& state = args.state;
+    Vec2D& PlayerBous = args.PlayerBous;
+
     std::unique_lock<std::mutex> lock(state.mutex);
 
     while (true) {
@@ -79,6 +104,32 @@ void printToConsole(ConsoleState& state, Vec2D& PlayerBous) {
         WSASetLastError(receiveError);
         err_display("recvfrom()");
     }
+
+    return 0;
+}
+
+int runServerThreads(SOCKET sock, Vec2D& PlayerBous) {
+    ConsoleState state;
+    ServerThreadArgs args{sock, state, PlayerBous};
+
+    HANDLE consoleThread = CreateThread(nullptr, 0, printToConsole, &args, 0, nullptr);
+    if (consoleThread == nullptr) {
+        fprintf(stderr, "[CreateThread()] %lu\n", GetLastError());
+        return 1;
+    }
+
+    HANDLE receiveThread = CreateThread(nullptr, 0, receiveAndStore, &args, 0, nullptr);
+    if (receiveThread == nullptr) {
+        fprintf(stderr, "[CreateThread()] %lu\n", GetLastError());
+        finishReceiving(state, 0);
+    } else {
+        WaitForSingleObject(receiveThread, INFINITE);
+        CloseHandle(receiveThread);
+    }
+
+    WaitForSingleObject(consoleThread, INFINITE);
+    CloseHandle(consoleThread);
+    return receiveThread == nullptr ? 1 : 0;
 }
 
 int main() {
@@ -97,22 +148,10 @@ int main() {
     if (bind(sock, reinterpret_cast<const sockaddr*>(&serveraddr), sizeof(serveraddr)) == SOCKET_ERROR)
         err_quit("bind()");
 
-    ConsoleState state;
     Vec2D PlayerBous;
-    std::thread consoleThread([&] { printToConsole(state, PlayerBous); });
-
-    const int receiveError = receiveAndStore(sock, state);
-
-    {
-        std::lock_guard<std::mutex> lock(state.mutex);
-        state.receiveError = receiveError;
-        state.finished = true;
-    }
-
-    state.ready.notify_one();
-    consoleThread.join();
+    const int exitCode = runServerThreads(sock, PlayerBous);
 
     closesocket(sock);
     WSACleanup();
-    return 0;
+    return exitCode;
 }
