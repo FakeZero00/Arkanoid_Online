@@ -3,7 +3,11 @@
 #include "Transform.h"
 #include "AppContext.h"
 
+unsigned int Object::objCounter = 0; //오브젝트 고유 ID를 위한 카운터 초기화
+
 Object::Object(AppContext& context, string str) : ctx(context), name(str) {
+	id = objCounter++; //오브젝트 고유 ID 할당 후 카운터 증가
+
 	//Transform 컴포넌트 생성 및 추가
 	auto transform = make_unique<Transform>();
 	transform->gameObject = this; //Transform의 gameObject를 현재 Object로 설정

@@ -16,3 +16,12 @@ Object* Scene::FindObject(AppContext& ctx, string objName) {
 	}
 	return nullptr;
 }
+
+Object* Scene::FindObject(AppContext& ctx, int objID) {
+	for (auto& obj : ctx.Hierarchy) {
+		if (obj->id == objID) {
+			return obj.get();
+		}
+	}
+	return nullptr;
+}

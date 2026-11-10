@@ -8,6 +8,8 @@ using namespace std;
 
 class Object {
 public:
+	static unsigned int objCounter; //오브젝트 고유 ID를 위한 카운터
+	unsigned int id;
 	bool isValid = true;
 	bool isStarted = false;
 
@@ -40,6 +42,8 @@ public:
 
 		return nullptr;
 	}
+
+	int Get_ID() const { return id; }
 
 	void Awake();
 	void Start();
