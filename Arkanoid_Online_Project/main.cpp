@@ -87,6 +87,7 @@ int main(int argc, char** argv) {
 	meshChache["Pyramid"] = new Mesh("Default_Pyramid.obj");
 	meshChache["Sphere"] = new Mesh("Default_Sphere.obj");
 	meshChache["Torus"] = new Mesh("Default_Torus.obj");
+	meshChache["SpotLight"] = new Mesh("Default_SpotLight.obj");
 	meshChache["Block"] = new Mesh("Block.obj");
 	meshChache["Wall"] = new Mesh("Wall.obj");
 	meshChache["AI_Door"] = new Mesh("AI_Door.obj");

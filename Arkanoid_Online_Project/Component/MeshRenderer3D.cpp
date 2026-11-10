@@ -4,6 +4,7 @@
 #include "Object.h"
 #include "Transform.h"
 #include "Camera.h"
+#include "Light.h"
 #include <gl/glew.h>
 #include <gl/glm/gtc/type_ptr.hpp>
 using namespace std;
@@ -35,6 +36,41 @@ void MeshRenderer3D::Render(Camera* activeCamera) {
 
 			GLuint projLoc = glGetUniformLocation(material->shaderProgram, "proj");
 			glUniformMatrix4fv(projLoc, 1, GL_FALSE, value_ptr(activeCamera->GetProjectionMatrix()));
+
+			//Phong 모델을 위한 카메라의 월드 위치(viewPos) 전달
+			Transform* camTr = activeCamera->gameObject->GetComponent<Transform>();
+			GLuint viewPosLoc = glGetUniformLocation(material->shaderProgram, "viewPos");
+			glUniform3fv(viewPosLoc, 1, value_ptr(camTr->worldPosition));
+		}
+
+		//씬(Hierarchy)에서 Light 컴포넌트 탐색 및 조명 정보 전달
+		Light* sceneLight = nullptr;
+		Transform* lightTr = nullptr;
+		for (const auto& obj : gameObject->ctx.Hierarchy) {
+			if (!obj->isValid) continue;
+			sceneLight = obj->GetComponent<Light>();
+			if (sceneLight != nullptr) {
+				lightTr = obj->GetComponent<Transform>();
+				break; // 첫 번째 조명을 찾으면 루프 종료
+			}
+		}
+
+		// Uniform 위치 가져오기 및 값 전달 로직
+		GLuint lightDirLoc = glGetUniformLocation(material->shaderProgram, "lightDir");
+		GLuint lightColorLoc = glGetUniformLocation(material->shaderProgram, "lightColor");
+
+		if (sceneLight != nullptr && lightTr != nullptr) {
+			// 💡 Unity 스타일 Directional Light: position 무시, rotation만 반영
+			// 라이트 오브젝트의 로컬 전방 벡터(0, 0, -1)에 월드 회전 행렬을 곱하여 방향 추출 (w=0으로 평행이동 차단)
+			vec3 lightDir = normalize(vec3(lightTr->worldMatrix * vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+			vec3 finalLightColor = vec3(sceneLight->lightColor) * sceneLight->intensity;
+
+			glUniform3fv(lightDirLoc, 1, value_ptr(lightDir));
+			glUniform3fv(lightColorLoc, 1, value_ptr(finalLightColor));
+		}
+		else {
+			glUniform3f(lightDirLoc, 0.0f, 0.0f, -1.0f);
+			glUniform3f(lightColorLoc, 1.0f, 1.0f, 1.0f);
 		}
 
 		//Pass1 : 외곽선 렌더링 처리
@@ -44,7 +80,7 @@ void MeshRenderer3D::Render(Camera* activeCamera) {
 			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, value_ptr(outlineMatrix));
 			glUniform4f(colorLoc, 0.0f, 0.0f, 0.0f, 1.0f); //외곽선 색상 검정
 			glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_BYTE, 0);
-			
+
 			//원래 색상 전달
 			vec4 originalColor = material->GetVec4("tColor");
 			glUniform4f(colorLoc, originalColor.r, originalColor.g, originalColor.b, originalColor.a);
@@ -106,6 +142,9 @@ Component* MeshRenderer3D::CreateFromJson(Object* obj, const json& props, const 
 	}
 
 	MeshRenderer3D* meshRenderer = obj->AddComponent<MeshRenderer3D>(meshChache[props["mesh"]], material);
+
+	if (props.contains("isWireframe")) meshRenderer->isWireframe = props["isWireframe"];
+
 	return meshRenderer;
 }
 

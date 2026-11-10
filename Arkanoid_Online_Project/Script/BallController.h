@@ -12,7 +12,7 @@ private:
 	float speed = 15.0f;
 
 	bool isCatched = true;
-	vec3 velocity = vec3(0.0f, 0.0f, 0.0f);
+	vec3 velocity = vec3(speed, 0.0f, 0.0f);
 
 public:
 	void Start() override;

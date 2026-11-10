@@ -44,6 +44,10 @@ Mesh::Mesh(const vector<Vertex>& vertices, const vector<GLuint>& indices) {
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 	glEnableVertexAttribArray(1);
 
+	//버텍스 노말: 속성 2
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+	glEnableVertexAttribArray(2);
+
 	// VAO 바인딩 해제
 	glBindVertexArray(0);
 }
@@ -106,6 +110,10 @@ Mesh::Mesh(const string& objFile) {
 	//버텍스 색상: 속성 1
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 	glEnableVertexAttribArray(1);
+
+	//버텍스 노말: 속성 2
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+	glEnableVertexAttribArray(2);
 
 	// VAO 바인딩 해제
 	glBindVertexArray(0);

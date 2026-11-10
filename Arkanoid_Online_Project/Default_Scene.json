@@ -24,6 +24,34 @@
       ]
     },
 	{
+      "name": "Directional Light",
+      "parent": "",
+      "transform": {
+        "position": [ 0.0, 10.0, 10.0 ],
+        "rotation": [ 150.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+		{
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "SpotLight",
+            "materials":[
+				"Green"
+			]
+          }
+        },
+        {
+          "type": "Light",
+          "properties": {
+            "lightType": "Directional",
+            "lightColor": [1.0, 1.0, 1.0, 1.0],
+            "intensity": 1.0
+          }
+        }
+      ]
+    },
+	{
       "name": "Stage_Root",
       "parent": "",
       "transform": {

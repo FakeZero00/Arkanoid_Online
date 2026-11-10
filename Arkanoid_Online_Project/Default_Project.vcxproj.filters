@@ -147,6 +147,9 @@
     <ClInclude Include="Script\BlockBehavior.h">
       <Filter>Script</Filter>
     </ClInclude>
+    <ClInclude Include="Component\Light.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Component\MeshRenderer3D.cpp">
@@ -217,6 +220,9 @@
     </ClCompile>
     <ClCompile Include="Script\BlockBehavior.cpp">
       <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\Light.cpp">
+      <Filter>Component\Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
