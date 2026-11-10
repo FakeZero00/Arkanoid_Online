@@ -223,8 +223,9 @@
 		{
           "type": "RigidBody",
 		  "properties": {
+			  "mass": 1.0,
 			  "useGravity": false,
-			  "isKinematic": false
+			  "isKinematic": true
 		  }
         },
 		{

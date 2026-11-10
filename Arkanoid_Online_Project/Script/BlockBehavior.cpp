@@ -4,7 +4,12 @@
 void BlockBehavior::OnTriggerEnter(Object* other)
 {
 	if (other->name == "Ball") {
-		gameObject->Destroy();
+		hitCount++;
+
+		if (color == "Silver") {
+			if(hitCount >= 2) gameObject->Destroy();
+		}
+		else gameObject->Destroy();
 	}
 }
 
