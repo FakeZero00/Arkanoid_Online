@@ -31,6 +31,11 @@ void BallController::Update(float deltaTime)
 void BallController::OnTriggerEnter(Object* other) {
 	Transform* otherTr = other->GetComponent<Transform>();
 	vec3 dir = otherTr->position - tr->position;
+	speed += 1.0f; //충돌할 때마다 속도 증가
+	speed = std::min(speed, 30.0f); //최대 속도 제한
+	cout << "Ball Speed: " << speed << endl;
+	velocity = normalize(velocity) * speed;
+	
 
 	//충돌시 절대값으로 반사하는 것은 공과 2개 이상의 오브젝트가 거의 동시에 충돌했을 때 공이 튕기는 방향이 이상하게 나오는 문제를 해결하기 위함
 	if (other->name == "WallCol.L") velocity.x = std::abs(velocity.x); 
@@ -44,7 +49,6 @@ void BallController::OnTriggerEnter(Object* other) {
 	//벽돌에 충돌했을 경우
 	else {
 		//공으로 부터 충돌한 오브젝트까지의 방향벡터의 x, y 중 큰 값에 따라 반사 방향을 결정
-		cout << other->name << endl;
 		if (std::abs(dir.x) >= std::abs(dir.y)) {
 			if (dir.x >= 0.0) velocity.x = -std::abs(velocity.x);
 			else velocity.x = std::abs(velocity.x);
