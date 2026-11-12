@@ -43,6 +43,8 @@
     <ClInclude Include="Data_Structure\ScreenSize.h" />
     <ClInclude Include="Data_Structure\Vertex.h" />
     <ClInclude Include="Default_Scene.h" />
+    <ClInclude Include="Network.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Script\BallController.h" />
     <ClInclude Include="Script\BlockBehavior.h" />
     <ClInclude Include="Script\BousController.h" />
@@ -90,6 +92,9 @@
     <None Include="Shader\Spline_vertex.glsl" />
     <None Include="Shader\Standard_fragment.glsl" />
     <None Include="Shader\Standard_vertex.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>

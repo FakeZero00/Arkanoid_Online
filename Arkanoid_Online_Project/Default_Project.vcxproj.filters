@@ -150,6 +150,12 @@
     <ClInclude Include="Component\Light.h">
       <Filter>Component\Header</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Network.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Component\MeshRenderer3D.cpp">
@@ -253,5 +259,10 @@
     <None Include="Default_Scene.json">
       <Filter>리소스 파일</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc">
+      <Filter>리소스 파일</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
