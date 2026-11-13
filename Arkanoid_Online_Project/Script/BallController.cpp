@@ -11,12 +11,16 @@ void BallController::Update(float deltaTime)
 {
 	if (isCatched) {
 		if (inputManager->GetKeyPressed(GLFW_KEY_LEFT)) {
-			tr->Translate(-speed * deltaTime, 0.0f, 0.0f);
-			velocity.x = -speed;
+			if (canMoveLeft) {
+				tr->Translate(-speed * deltaTime, 0.0f, 0.0f);
+				velocity.x = -speed;
+			}
 		}
 		else if (inputManager->GetKeyPressed(GLFW_KEY_RIGHT)) {
-			tr->Translate(speed * deltaTime, 0.0f, 0.0f);
-			velocity.x = speed;
+			if (canMoveRight) {
+				tr->Translate(speed * deltaTime, 0.0f, 0.0f);
+				velocity.x = speed;
+			}
 		}
 		if (inputManager->GetKeyDown(GLFW_KEY_X)) {
 			isCatched = false;

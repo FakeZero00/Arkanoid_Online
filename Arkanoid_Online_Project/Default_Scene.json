@@ -229,7 +229,10 @@
 		  }
         },
 		{
-          "type": "BousController"
+          "type": "BousController",
+		  "properties": {
+			  "ball": "Ball"
+		  }
         }
       ]
     },
