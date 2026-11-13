@@ -1,155 +1,140 @@
 #include "Common.h"
-#include "Vec2D.h"
+#include "../../../UdpPaddleProtocol.h"
 
-#include <Windows.h>
-#include <condition_variable>
-#include <mutex>
-#include <queue>
+#include <array>
+#include <chrono>
 
-constexpr unsigned short SERVERPORT = 9000;
+using Clock = std::chrono::steady_clock;
+constexpr auto PlayerTimeout = std::chrono::seconds(3);
 
-struct ReceivedPosition {
-    Vec2DPacket position;
-    sockaddr_in sender;
+struct Player {
+    sockaddr_in address{};
+    PaddlePosition position{};
+    Clock::time_point lastReceived{};
+    bool registered = false;
 };
 
-struct ConsoleState {
-    std::mutex mutex;
-    std::condition_variable ready;
-
-    std::queue<ReceivedPosition> pending;
-
-    bool finished = false;
-    int receiveError = 0;
-};
-
-struct ServerThreadArgs {
-    SOCKET sock;
-    ConsoleState& state;
-    Vec2D& PlayerBous;
-};
-
-void finishReceiving(ConsoleState& state, int receiveError) {
-    {
-        std::lock_guard<std::mutex> lock(state.mutex);
-        state.receiveError = receiveError;
-        state.finished = true;
+const Player* finddest_udp(const std::array<Player, 2>& players, const sockaddr_in& sender,
+    int& senderIndex) {
+    for (int playerindex = 0; playerindex < static_cast<int>(players.size()); ++playerindex) {
+        const Player& player = players[playerindex];
+        if (player.registered && player.address.sin_addr.s_addr == sender.sin_addr.s_addr &&
+            player.address.sin_port == sender.sin_port) {
+            senderIndex = playerindex;
+            return &players[!playerindex];
+        }
     }
 
-    state.ready.notify_one();
+    return nullptr;
 }
 
-DWORD WINAPI receiveAndStore(LPVOID parameter) {
-    const auto& args = *static_cast<ServerThreadArgs*>(parameter);
-    ConsoleState& state = args.state;
+bool registerPlayer(std::array<Player, 2>& players, const sockaddr_in& sender) {
+    for (auto& player : players) {
+        if (!player.registered) {
+            player.address = sender;
+            player.registered = true;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int relayPositions(SOCKET sock) {
+    std::array<Player, 2> players{};
+    std::uint32_t relaySequence = 0;
+
+    printf("Listening for two players on UDP port %u\n", ServerPort);
+    fflush(stdout);
 
     while (true) {
-        ReceivedPosition received{};
-        int addrlen = sizeof(received.sender);
-        constexpr int packetSize = sizeof(Vec2DPacket);
-
-        const int bytesReceived = recvfrom(args.sock, reinterpret_cast<char*>(&received.position),
-            packetSize, 0, reinterpret_cast<sockaddr*>(&received.sender), &addrlen);
-
-        if (bytesReceived == SOCKET_ERROR) {
+        PositionPacket packet{};
+        sockaddr_in sender{};
+        int senderLength = sizeof(sender);
+        const int receivedBytes = recvfrom(sock, reinterpret_cast<char*>(&packet), sizeof(packet), 0,
+            reinterpret_cast<sockaddr*>(&sender), &senderLength);
+        if (receivedBytes == SOCKET_ERROR) {
             const int error = WSAGetLastError();
-            if (error == WSAEMSGSIZE) continue;
-
-            finishReceiving(state, error);
-            return 0;
+            if (error == WSAEMSGSIZE || error == WSAECONNRESET) continue;
+            fprintf(stderr, "recvfrom() failed (%d)\n", error);
+            return 1;
         }
 
-        if (bytesReceived != packetSize) continue;
+        PaddlePosition position{};
+        if (receivedBytes != static_cast<int>(sizeof(packet)) || !decodePosition(packet, position)) continue;
 
-        {
-            std::lock_guard<std::mutex> lock(state.mutex);
-            state.pending.push(received);
+        const auto now = Clock::now();
+        for (auto& player : players) {
+            if (player.registered && now - player.lastReceived >= PlayerTimeout) {
+                player = {};
+            }
         }
-        state.ready.notify_one();
+
+        int senderIndex = -1;
+        const Player* destination = finddest_udp(players, sender, senderIndex);
+        const bool joining = destination == nullptr;
+        if (joining && registerPlayer(players, sender)) {
+            destination = finddest_udp(players, sender, senderIndex);
+        }
+        if (destination == nullptr) continue;
+
+        Player& player = players[senderIndex];
+        if (!joining && !isNewerSequence(position.sequence, player.position.sequence)) continue;
+
+        const bool changed = joining || position.x != player.position.x || position.y != player.position.y;
+        player.position = position;
+        player.lastReceived = now;
+
+        const char name = senderIndex == 0 ? 'A' : 'B';
+        const char destinationName = destination == &players[0] ? 'A' : 'B';
+
+        if (joining) {
+            char ip[INET_ADDRSTRLEN]{};
+            inet_ntop(AF_INET, &sender.sin_addr, ip, sizeof(ip));
+            printf("[join] %c %s:%u\n", name, ip, ntohs(sender.sin_port));
+            fflush(stdout);
+        }
+
+        if (!destination->registered) continue;
+
+        // Use a server sequence so a replacement player's first packet is newer too.
+        const PositionPacket outgoing = encodePosition({++relaySequence, position.x, position.y});
+        const int sentBytes = sendto(sock, reinterpret_cast<const char*>(&outgoing), sizeof(outgoing), 0,
+            reinterpret_cast<const sockaddr*>(&destination->address), sizeof(destination->address));
+        if (sentBytes == SOCKET_ERROR) {
+            fprintf(stderr, "sendto() to %c failed (%d)\n", destinationName, WSAGetLastError());
+        } else if (changed) {
+            printf("[relay] %c -> %c clientSeq=%u relaySeq=%u x=%.6f y=%.6f\n",
+                name, destinationName, position.sequence, relaySequence, position.x, position.y);
+            fflush(stdout);
+        }
     }
-}
-
-DWORD WINAPI printToConsole(LPVOID parameter) {
-    const auto& args = *static_cast<ServerThreadArgs*>(parameter);
-    ConsoleState& state = args.state;
-    Vec2D& PlayerBous = args.PlayerBous;
-
-    std::unique_lock<std::mutex> lock(state.mutex);
-
-    while (true) {
-        state.ready.wait(lock, [&] { return !state.pending.empty() || state.finished; });
-
-        if (state.pending.empty()) break;
-
-        const ReceivedPosition received = state.pending.front();
-        state.pending.pop();
-        lock.unlock();
-
-        PlayerBous.x = received.position.x;
-        PlayerBous.y = received.position.y;
-
-        char addr[INET_ADDRSTRLEN]{};
-        inet_ntop(AF_INET, &received.sender.sin_addr, addr, sizeof(addr));
-        printf("[UDP/%s:%d] (X: %f, Y: %f)\n", addr, ntohs(received.sender.sin_port),
-            PlayerBous.x, PlayerBous.y);
-        fflush(stdout);
-
-        lock.lock();
-    }
-
-    const int receiveError = state.receiveError;
-    lock.unlock();
-
-    if (receiveError != 0) {
-        WSASetLastError(receiveError);
-        err_display("recvfrom()");
-    }
-
-    return 0;
-}
-
-int runServerThreads(SOCKET sock, Vec2D& PlayerBous) {
-    ConsoleState state;
-    ServerThreadArgs args{sock, state, PlayerBous};
-
-    HANDLE consoleThread = CreateThread(nullptr, 0, printToConsole, &args, 0, nullptr);
-    if (consoleThread == nullptr) {
-        fprintf(stderr, "[CreateThread()] %lu\n", GetLastError());
-        return 1;
-    }
-
-    HANDLE receiveThread = CreateThread(nullptr, 0, receiveAndStore, &args, 0, nullptr);
-    if (receiveThread == nullptr) {
-        fprintf(stderr, "[CreateThread()] %lu\n", GetLastError());
-        finishReceiving(state, 0);
-    } else {
-        WaitForSingleObject(receiveThread, INFINITE);
-        CloseHandle(receiveThread);
-    }
-
-    WaitForSingleObject(consoleThread, INFINITE);
-    CloseHandle(consoleThread);
-    return receiveThread == nullptr ? 1 : 0;
 }
 
 int main() {
     WSADATA wsa;
-    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+    const int startupResult = WSAStartup(MAKEWORD(2, 2), &wsa);
+    if (startupResult != 0) return 1;
+
+    const SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sock == INVALID_SOCKET) {
+        fprintf(stderr, "socket() failed (%d)\n", WSAGetLastError());
+        WSACleanup();
         return 1;
+    }
 
-    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock == INVALID_SOCKET) err_quit("socket()");
+    sockaddr_in server{};
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = htonl(INADDR_ANY);
+    server.sin_port = htons(ServerPort);
 
-    sockaddr_in serveraddr{};
-    serveraddr.sin_family = AF_INET;
-    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serveraddr.sin_port = htons(SERVERPORT);
-
-    if (bind(sock, reinterpret_cast<const sockaddr*>(&serveraddr), sizeof(serveraddr)) == SOCKET_ERROR)
-        err_quit("bind()");
-
-    Vec2D PlayerBous;
-    const int exitCode = runServerThreads(sock, PlayerBous);
+    int exitCode = 1;
+    const int bindResult = bind(sock, reinterpret_cast<const sockaddr*>(&server), sizeof(server));
+    if (bindResult == SOCKET_ERROR) {
+        fprintf(stderr, "bind() failed (%d)\n", WSAGetLastError());
+    } else {
+        exitCode = relayPositions(sock);
+    }
 
     closesocket(sock);
     WSACleanup();

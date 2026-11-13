@@ -124,6 +124,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
+    <ClInclude Include="..\..\..\UdpPaddleProtocol.h" />
     <ClInclude Include="Vec2D.h" />
   </ItemGroup>
   <ItemGroup>
