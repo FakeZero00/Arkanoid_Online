@@ -32,15 +32,24 @@ map<string, Material*> materialChache;
 
 // 대화상자 프로시저
 INT_PTR CALLBACK DlgProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK RoomCreateDlgProc(HWND, UINT, WPARAM, LPARAM);
 
 /// ///////////////////////////////////
 
 void RunDialogThread() {
-	// 1. 현재 프로그램의 인스턴스 핸들을 가져옵니다. (main 함수에서는 hInstance가 없으므로 직접 구해야 합니다)
+	// 1. 현재 프로그램의 인스턴스 핸들을 가져옵니다.
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 
-	// 2. 대화상자 생성 (다이얼로그 창이 닫힐 때까지 여기서 코드 실행이 대기합니다)
+	// 2. 대화상자 생성
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
+}
+
+void RunRoomCreateDialogThread() {
+	// 1. 현재 프로그램의 인스턴스 핸들을 가져옵니다.
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+
+	// 2. 대화상자 생성
+	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG2), NULL, RoomCreateDlgProc);
 }
 
 int main(int argc, char** argv) {
@@ -291,9 +300,33 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
+		// "방 만들기" 버튼 클릭
+		case IDC_BUTTON4:
+			thread dialogThread(RunRoomCreateDialogThread);
+			dialogThread.detach();
+			return TRUE;
+		}
+		return FALSE;
+	case WM_CLOSE:
+		EndDialog(hDlg, 0);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+INT_PTR CALLBACK RoomCreateDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg) {
+	case WM_INITDIALOG:
+		return TRUE;
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
 
 		}
 		return FALSE;
+	case WM_CLOSE:
+		EndDialog(hDlg, 0);
+		return TRUE;
 	}
 	return FALSE;
 }
