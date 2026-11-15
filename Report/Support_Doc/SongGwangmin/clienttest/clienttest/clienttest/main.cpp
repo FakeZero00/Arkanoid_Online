@@ -19,6 +19,7 @@ namespace {
 Vec2D localBous;
 Vec2D remoteBous;
 std::queue<PositionPacket> pendingPositions;
+std::mutex queueMutex;
 std::mutex positionMutex;
 }
 
@@ -134,8 +135,9 @@ int receiveRemotePositions(SOCKET sock, ClientState& state) {
 void printPositions(ClientState& state) {
     std::unique_lock<std::mutex> lock(positionMutex);
     while (true) {
-        state.displayReady.wait(lock, [&] { return state.displayDirty || !state.running; });
-        if (!state.displayDirty) break;
+        state.displayReady.wait_for(lock, std::chrono::milliseconds(100),
+            [&] { return state.displayDirty || !state.running; });
+        if (!state.displayDirty && !state.running) break;
 
         const Vec2D local = localBous;
         const Vec2D remote = remoteBous;
@@ -143,8 +145,16 @@ void printPositions(ClientState& state) {
         state.displayDirty = false;
         lock.unlock();
 
-        printf("\r[local] (%12.6g,%12.6g) [remote] (%12.6g,%12.6g) %-6s",
-            local.x, local.y, remote.x, remote.y, hasRemote ? "" : "(wait)");
+        char queueLength[32] = "-";
+        {
+            std::unique_lock<std::mutex> queueLock(queueMutex, std::try_to_lock);
+            if (queueLock.owns_lock()) {
+                snprintf(queueLength, sizeof(queueLength), "%zu", pendingPositions.size());
+            }
+        }
+
+        printf("\r[local] (%10.6g,%10.6g) [remote] (%10.6g,%10.6g) %-6s q=%-5s",
+            local.x, local.y, remote.x, remote.y, hasRemote ? "" : "(wait)", queueLength);
         fflush(stdout);
 
         lock.lock();
@@ -170,15 +180,24 @@ DWORD updateLocalPosition(HANDLE input, bool observe, ClientState& state) {
         previousUpdate = now;
 
         const Vec2D direction = observe ? Vec2D{} : keys.direction();
+        Vec2D position;
+        bool changed;
         {
             std::lock_guard<std::mutex> lock(positionMutex);
             const Vec2D previous = localBous;
             updatePosition(localBous, direction, deltaTime.count());
-            if (localBous.x != previous.x || localBous.y != previous.y) {
-                pendingPositions.push(encodePosition({0, localBous.x, localBous.y}));
+            position = localBous;
+            changed = position.x != previous.x || position.y != previous.y;
+            if (changed) {
                 state.displayDirty = true;
                 state.displayReady.notify_one();
             }
+        }
+
+        if (changed) {
+            const PositionPacket packet = encodePosition({0, position.x, position.y});
+            std::lock_guard<std::mutex> lock(queueMutex);
+            pendingPositions.push(packet);
         }
 
         Sleep(16);
@@ -188,34 +207,40 @@ DWORD updateLocalPosition(HANDLE input, bool observe, ClientState& state) {
 }
 
 int sendLocalPositions(SOCKET sock, const ClientState& state) {
-    PaddlePosition lastSent{};
+    PositionPacket lastSent = encodePosition({0, 0.0f, 0.0f});
+    std::uint32_t nextSequence = 1;
     auto lastSend = Clock::now() - PositionRefreshInterval;
-    bool hasSent = false;
 
     while (state.running) {
-        Vec2D position;
-        {
-            std::lock_guard<std::mutex> lock(positionMutex);
-            position = localBous;
-        }
+        if (Clock::now() - lastSend >= SendInterval) {
+            do {
+                PositionPacket packet = lastSent;
+                bool fromQueue;
+                {
+                    std::lock_guard<std::mutex> lock(queueMutex);
+                    fromQueue = !pendingPositions.empty();
+                    if (fromQueue) packet = pendingPositions.front();
+                }
+                if (!fromQueue && Clock::now() - lastSend < PositionRefreshInterval) break;
 
-        const auto now = Clock::now();
-        const bool changed = !hasSent || position.x != lastSent.x || position.y != lastSent.y;
-        const auto sinceSend = now - lastSend;
-        if ((changed && sinceSend >= SendInterval) || sinceSend >= PositionRefreshInterval) {
-            const PaddlePosition outgoing{lastSent.sequence + 1, position.x, position.y};
-            const PositionPacket packet = encodePosition(outgoing);
-            const int sentBytes = send(sock, reinterpret_cast<const char*>(&packet), sizeof(packet), 0);
-            if (sentBytes == SOCKET_ERROR) {
-                const int error = WSAGetLastError();
-                if (error != WSAEWOULDBLOCK && error != WSAECONNRESET) {
+                packet.sequence = htonl(nextSequence);
+
+                const int sentBytes = send(sock, reinterpret_cast<const char*>(&packet), sizeof(packet), 0);
+                if (sentBytes == SOCKET_ERROR) {
+                    const int error = WSAGetLastError();
+                    if (error == WSAEWOULDBLOCK || error == WSAECONNRESET) break;
                     return error;
                 }
-            } else {
-                lastSent = outgoing;
-                lastSend = now;
-                hasSent = true;
-            }
+
+                lastSent = packet;
+                ++nextSequence;
+                lastSend = Clock::now();
+                if (!fromQueue) break;
+
+                // Only this thread removes packets, so the front is still the one sent.
+                std::lock_guard<std::mutex> lock(queueMutex);
+                pendingPositions.pop();
+            } while (state.running);
         }
 
         Sleep(16);
