@@ -6,6 +6,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <queue>
 #include <system_error>
 #include <thread>
 
@@ -17,6 +18,7 @@ constexpr auto PeerTimeout = std::chrono::seconds(3);
 namespace {
 Vec2D localBous;
 Vec2D remoteBous;
+std::queue<PositionPacket> pendingPositions;
 std::mutex positionMutex;
 }
 
@@ -173,6 +175,7 @@ DWORD updateLocalPosition(HANDLE input, bool observe, ClientState& state) {
             const Vec2D previous = localBous;
             updatePosition(localBous, direction, deltaTime.count());
             if (localBous.x != previous.x || localBous.y != previous.y) {
+                pendingPositions.push(encodePosition({0, localBous.x, localBous.y}));
                 state.displayDirty = true;
                 state.displayReady.notify_one();
             }
