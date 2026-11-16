@@ -4,6 +4,9 @@
 #include <thread>
 using namespace std;
 
+#define SERVERIP	"127.0.0.1"
+#define SERVERPORT	9090
+
 /////////////씬 임포트/////////////
 #include "Default_Scene.h"
 ///////////////////////////////////
@@ -37,10 +40,33 @@ INT_PTR CALLBACK RoomCreateDlgProc(HWND, UINT, WPARAM, LPARAM);
 /// ///////////////////////////////////
 
 void RunDialogThread() {
-	// 1. 현재 프로그램의 인스턴스 핸들을 가져옵니다.
+	// 현재 프로그램의 인스턴스 핸들을 가져옵니다.
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 
-	// 2. 대화상자 생성
+	//윈속 초기화
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		err_quit("WSAStartup()");
+		return;
+	}
+
+	int retval;
+
+	// 소켓 생성
+	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == INVALID_SOCKET) err_quit("socket()");
+
+	// connect()
+	cout << "서버에 연결 중..." << endl;
+	struct sockaddr_in serveraddr;
+	memset(&serveraddr, 0, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_addr.s_addr = inet_addr(SERVERIP);
+	serveraddr.sin_port = htons(SERVERPORT);
+	retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+	if (retval == SOCKET_ERROR) err_quit("connect()");
+
+	// 대화상자 생성
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
 }
 
