@@ -78,6 +78,8 @@ void PrintMenu()
            " 4 ITEM_END      5 BALL_LOST            6 RESPAWN\n"
            " 7 STAGE_CLEAR(+500)                    8 STAGE_START\n"
            " 9 잘못된 event 값 (서버가 무시하는지 확인)\n"
+           " -- 서버 검사 테스트 (상대에게 가면 안 됨) --\n"
+           " a 점수 감소   b 블록 인덱스 범위 밖   c 스테이지 건너뛰기\n"
            " m 메뉴 다시 보기   q 종료\n"
            "-----------------------------------------------\n");
 }
@@ -129,7 +131,8 @@ int main(int argc, char* argv[])
         switch (key) {
         case '1': pkt = MakeGameEvent(BLOCK_HIT,    timeMs, score, 0, blockIdx, 1); break;
         case '2': score += 100;
-                  pkt = MakeGameEvent(BLOCK_BROKEN, timeMs, score, 0, blockIdx++, 100); break;
+                  pkt = MakeGameEvent(BLOCK_BROKEN, timeMs, score, 0, blockIdx, 100);
+                  blockIdx = (uint16_t)((blockIdx + 1) % 66); break;
         case '3': pkt = MakeGameEvent(ITEM_GET,     timeMs, score, 1); break;
         case '4': pkt = MakeGameEvent(ITEM_END,     timeMs, score, 1); break;
         case '5': pkt = MakeGameEvent(BALL_LOST,    timeMs, score, 0, 0, 3000); break;
@@ -139,7 +142,11 @@ int main(int argc, char* argv[])
         case '8': stage++;
                   pkt = MakeGameEvent(STAGE_START,  timeMs, score, stage); break;
         case '9': pkt = MakeGameEvent((EventType)200, timeMs, score); break;
-        default:  printf("1~9, m, q 중에서 입력하세요\n"); continue;
+        // 아래 3개는 내 점수 · 스테이지 값을 바꾸지 않고 잘못된 값만 보냄
+        case 'a': pkt = MakeGameEvent(BLOCK_BROKEN, timeMs, score / 2, 0, 0, 100); break;
+        case 'b': pkt = MakeGameEvent(BLOCK_BROKEN, timeMs, score, 0, 999, 100); break;
+        case 'c': pkt = MakeGameEvent(STAGE_START,  timeMs, score, (uint8_t)(stage + 2)); break;
+        default:  printf("1~9, a~c, m, q 중에서 입력하세요\n"); continue;
         }
 
         if (!SendTyped(sock, pkt)) { printf("전송 실패: %d\n", WSAGetLastError()); break; }

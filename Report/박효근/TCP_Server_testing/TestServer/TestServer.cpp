@@ -6,6 +6,8 @@
 constexpr uint16_t SERVER_PORT    = 9000;
 constexpr uint16_t TIME_LIMIT_SEC = 180;
 constexpr uint16_t COUNTDOWN_MS   = 3000;
+constexpr uint8_t  MAX_STAGE      = 3;
+constexpr uint16_t BLOCK_COUNT    = 66;    // 스테이지 1 기준 (6줄 x 11칸). 블록 번호 방식이 정해지면 수정
 
 const char* EVENT_NAME[EVENT_COUNT] = {
     "BLOCK_HIT", "BLOCK_BROKEN", "ITEM_GET", "ITEM_END",
@@ -45,12 +47,64 @@ struct Session {
     }
 };
 
+// 방 안의 플레이어 1명 상태 ---------------------------------------------------------
+// 서버는 점수를 계산하지 않고, 클라이언트가 보낸 값을 검사한 뒤 받아 적기만 함
+struct PlayerGameState {
+    uint32_t score      = 0;       // 마지막으로 받은 총점
+    uint8_t  stage      = 1;       // 지금 플레이 중인 스테이지
+    bool     cleared    = false;   // 지금 스테이지를 클리어했는지 (STAGE_START를 받으면 다시 false)
+    bool     finished   = false;   // 마지막 스테이지까지 클리어
+    uint32_t lastTimeMs = 0;       // 마지막으로 받은 이벤트의 timeMs
+};
+
+// 이벤트가 말이 되는지 검사. 정상이면 nullptr, 이상하면 이유 문자열
+const char* ValidateEvent(const PlayerGameState& st, const GameEventPacket& p)
+{
+    if (p.score < st.score)       return "점수가 줄어듦";
+    if (p.timeMs < st.lastTimeMs) return "timeMs가 이전보다 작음";
+
+    switch (p.event) {
+    case BLOCK_HIT:
+    case BLOCK_BROKEN:
+        if (p.arg16 >= BLOCK_COUNT) return "블록 인덱스 범위 밖";
+        break;
+    case STAGE_CLEAR:
+        if (p.arg8 != st.stage) return "지금 스테이지와 다른 번호를 클리어";
+        if (st.cleared)         return "이미 클리어한 스테이지";
+        break;
+    case STAGE_START:
+        if (!st.cleared)              return "지금 스테이지를 클리어하지 않고 다음 스테이지 시작";
+        if (p.arg8 != st.stage + 1)   return "스테이지 순서가 맞지 않음";
+        if (p.arg8 > MAX_STAGE)       return "스테이지 범위 밖";
+        break;
+    default:
+        break;
+    }
+    return nullptr;
+}
+
+// 검사를 통과한 이벤트를 상태에 반영
+void ApplyEvent(PlayerGameState& st, const GameEventPacket& p)
+{
+    st.score      = p.score;
+    st.lastTimeMs = p.timeMs;
+
+    if (p.event == STAGE_CLEAR) {
+        st.cleared = true;
+        if (st.stage == MAX_STAGE) st.finished = true;
+    } else if (p.event == STAGE_START) {
+        st.stage   = p.arg8;
+        st.cleared = false;
+    }
+}
+
 // 방 (2명) ------------------------------------------------------------------------
 enum class RoomState { Waiting, Playing, Ended };
 
 struct Room {
-    Session*  sessions[2] = {};
-    RoomState state = RoomState::Waiting;
+    Session*        sessions[2] = {};
+    PlayerGameState states[2];          // sessions[i]의 상태는 states[i]
+    RoomState       state = RoomState::Waiting;
     CRITICAL_SECTION cs;
 
     Room()  { InitializeCriticalSection(&cs); }
@@ -82,22 +136,46 @@ struct Room {
             return;
         }
 
-        // 잠금 안에서는 상태 확인과 상대 찾기만 하고, send는 잠금 밖에서
+        // 잠금 안에서는 검사 · 갱신 · 복사만 하고, send와 printf는 잠금 밖에서
         EnterCriticalSection(&cs);
-        Session* opp = nullptr;
-        bool playing = (state == RoomState::Playing);
-        int  idx = IndexOf(from);
-        if (playing && idx >= 0) opp = sessions[1 - idx];
+        Session*        opp = nullptr;
+        const char*     reject = nullptr;
+        PlayerGameState after{};
+        bool            bothFinished = false, justFinished = false;
+        int idx = IndexOf(from);
+        if (state == RoomState::Playing && idx >= 0) {
+            PlayerGameState& st = states[idx];
+            reject = ValidateEvent(st, pkt);
+            if (!reject) {
+                bool wasFinished = st.finished;
+                ApplyEvent(st, pkt);
+                justFinished = !wasFinished && st.finished;
+                bothFinished = states[0].finished && states[1].finished;
+                opp = sessions[1 - idx];
+            }
+            after = st;
+        }
         LeaveCriticalSection(&cs);
 
-        if (!opp) {
+        if (idx < 0 || (!opp && !reject)) {
             printf("[방] 세션 %d: 게임 중이 아님 → 무시\n", from->id);
+            return;
+        }
+        if (reject) {
+            printf("[검사] 세션 %d: %s 거부 (%s) → 중계 안 함. 서버 기록 score=%u stage=%u, 받은 score=%u timeMs=%u arg8=%u arg16=%u\n",
+                   from->id, EVENT_NAME[pkt.event], reject, after.score, after.stage,
+                   pkt.score, pkt.timeMs, pkt.arg8, pkt.arg16);
             return;
         }
 
         printf("[중계] 세션 %d → 세션 %d : %s timeMs=%u arg8=%u arg16=%u arg32=%d score=%u\n",
                from->id, opp->id, EVENT_NAME[pkt.event], pkt.timeMs,
                pkt.arg8, pkt.arg16, pkt.arg32, pkt.score);
+        printf("[상태] 세션 %d: score=%u stage=%u%s%s\n", from->id, after.score, after.stage,
+               after.cleared ? " (클리어)" : "", after.finished ? " (모든 스테이지 완료)" : "");
+        if (justFinished)
+            printf("[상태] 세션 %d 모든 스테이지 클리어%s\n", from->id,
+                   bothFinished ? " → 두 사람 모두 완료 (종료 판정은 11/26 일정)" : "");
 
         pkt.type = SC_OPP_EVENT;       // 본문은 그대로, type만 바꿈
         opp->Send(pkt);
@@ -107,17 +185,22 @@ struct Room {
     {
         EnterCriticalSection(&cs);
         Session* opp = nullptr;
+        uint32_t oppScore = 0, leftScore = 0;
         if (state == RoomState::Playing) {        // 확인과 변경을 같은 잠금 안에서 → 한 번만 종료
             state = RoomState::Ended;
             int idx = IndexOf(s);
-            if (idx >= 0) opp = sessions[1 - idx];
+            if (idx >= 0) {
+                opp       = sessions[1 - idx];
+                oppScore  = states[1 - idx].score;
+                leftScore = states[idx].score;
+            }
         }
         LeaveCriticalSection(&cs);
 
         if (opp) {
             opp->Send(MakeOppLeft());
-            opp->Send(MakeGameEnd(RESULT_WIN, REASON_OPP_LEFT, 0, 0));  // 점수는 11/15 이후에 채움
-            printf("[방] 세션 %d 이탈 → 세션 %d 승리 처리\n", s->id, opp->id);
+            opp->Send(MakeGameEnd(RESULT_WIN, REASON_OPP_LEFT, oppScore, leftScore));  // 받는 사람 기준: 내 점수, 상대 점수
+            printf("[방] 세션 %d 이탈 → 세션 %d 승리 처리 (점수 %u : %u)\n", s->id, opp->id, oppScore, leftScore);
         }
     }
 };
