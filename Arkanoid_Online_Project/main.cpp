@@ -2,6 +2,8 @@
 #include "Common.h"
 #include "resource.h"
 #include <thread>
+#include <tchar.h>
+#include <locale>
 using namespace std;
 
 #define SERVERIP	"127.0.0.1"
@@ -79,6 +81,9 @@ void RunRoomCreateDialogThread() {
 }
 
 int main(int argc, char** argv) {
+	std::locale::global(std::locale(""));
+	std::wcout.imbue(std::locale());
+
 	//다이얼로그 스레드
 	thread dialogThread(RunDialogThread);
 	dialogThread.detach(); // 메인 스레드와 분리하여 실행
@@ -347,7 +352,22 @@ INT_PTR CALLBACK RoomCreateDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
-
+			// 방 생성 버튼
+			case(IDC_BUTTON1):
+				// 방 이름과 비밀번호 가져오기
+				TCHAR roomName[256];
+				TCHAR password[256];
+				GetDlgItemText(hDlg, IDC_EDIT1, roomName, sizeof(roomName));
+				GetDlgItemText(hDlg, IDC_EDIT2, password, sizeof(password));
+				// 방 생성 로직 추가 (예: 서버에 방 생성 요청)
+				std::wcout << L"방 생성 요청: 이름=" << roomName << L", 비밀번호=" << password << std::endl;
+				//이 자리에 패킷 전송 코드 넣기
+				// 대화상자 닫기
+				EndDialog(hDlg, 0);
+				return TRUE;
+			case(IDC_BUTTON2): // 취소 버튼
+				EndDialog(hDlg, 0);
+				return TRUE;
 		}
 		return FALSE;
 	case WM_CLOSE:
