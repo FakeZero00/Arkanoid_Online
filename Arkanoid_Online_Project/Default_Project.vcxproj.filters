@@ -46,6 +46,15 @@
     <Filter Include="Script">
       <UniqueIdentifier>{c5e548df-2db7-4b90-b137-fce0d8cd9d25}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{34d1c900-677d-440b-af1c-f125b8a1bd07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\Header">
+      <UniqueIdentifier>{a6c2e6d4-110e-4bae-a4b6-8eed59f55315}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\Source">
+      <UniqueIdentifier>{04e52ee5-9569-4afd-bbdd-669de9c889c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Component\MeshRenderer3D.h">
@@ -153,7 +162,25 @@
     <ClInclude Include="resource.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Network.h">
+    <ClInclude Include="Network\Network.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Session.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Room.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\PlayerGameState.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\RoomState.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Protocol.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="AllNetworkLib.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -229,6 +256,9 @@
     </ClCompile>
     <ClCompile Include="Component\Light.cpp">
       <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Room.cpp">
+      <Filter>Network\Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
