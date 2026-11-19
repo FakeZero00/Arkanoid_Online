@@ -50,6 +50,7 @@
     <ClInclude Include="Network\Room.h" />
     <ClInclude Include="Network\RoomState.h" />
     <ClInclude Include="Network\Session.h" />
+    <ClInclude Include="Network\TempProtocol.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Script\BallController.h" />
     <ClInclude Include="Script\BlockBehavior.h" />

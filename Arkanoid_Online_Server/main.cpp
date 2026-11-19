@@ -1,7 +1,9 @@
-#include "Network.h"
+#include "AllNetworkLib.h"
 #include <iostream>
 
 #define SERVERPORT 9090
+
+DWORD WINAPI SessionThread(LPVOID arg);
 
 int main() {
 	int retval;
@@ -52,5 +54,53 @@ int main() {
 		char addr[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 		std::cout << "[TCP 서버] 클라이언트 접속: IP 주소=" << addr << ", 포트=" << ntohs(clientaddr.sin_port) << std::endl;
+
+		// 세션 생성 및 스레드 시작
+		Session* session = new Session();
+		session->SetSocket(client_sock);
+		HANDLE h = CreateThread(NULL, 0, SessionThread, session, 0, NULL);
+		if (h) CloseHandle(h);
 	}
+}
+
+DWORD WINAPI SessionThread(LPVOID arg)
+{
+	Session* s = (Session*)arg;
+	char buf[MAX_PACKET_SIZE];
+	int n;
+
+	while ((n = RecvPacket(s->GetSocket(), buf, sizeof(buf))) > 0) {
+		uint16_t type = PeekType(buf);
+
+		/*if (!IsInGameTcp(type)) {
+			printf("[세션 %d] 로비 패킷 type=%u (로비 파트 자리, 지금은 무시)\n", s->GetId(), type);
+			continue;
+		}*/
+
+		/*Room* room = GetRoom(s);
+		if (!room) {
+			printf("[세션 %d] 방이 없는데 인게임 패킷 type=%u → 무시\n", s->GetId(), type);
+			continue;
+		}*/
+
+		/*if (type == CS_GAME_EVENT) {
+			GameEventPacket pkt;
+			if (ReadTyped(buf, n, pkt)) room->OnGameEvent(s, pkt);
+			else printf("[세션 %d] CS_GAME_EVENT 크기가 다름 (%d바이트) → 무시\n", s->GetId(), n);
+		}*/
+		if (type == 2026) {
+			RoomInfoPacket pkt;
+			if (ReadTyped(buf, n, pkt)) printf("[세션 %d] 서버 이름=%s, 플레이어 이름=%s\n", s->GetId(), pkt.serverName, pkt.playerName);
+			else printf("[세션 %d] RoomInfoPacket 크기가 다름 (%d바이트) → 무시\n", s->GetId(), n);
+		}
+		else {
+			printf("[세션 %d] 클라이언트가 보낼 수 없는 type=%u → 무시\n", s->GetId(), type);
+		}
+	}
+
+	printf("[세션 %d] 연결 끊김 (%s)\n", s->GetId(), n == 0 ? "정상 종료" : "오류 또는 비정상 패킷");
+
+	s->Close();
+	// 상대 스레드가 아직 이 Session을 가리킬 수 있어서 테스트 서버에서는 delete 하지 않음
+	return 0;
 }

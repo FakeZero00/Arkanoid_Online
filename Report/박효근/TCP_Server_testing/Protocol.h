@@ -212,10 +212,13 @@ inline bool SendTyped(SOCKET sock, T pkt)
     return SendPacket(sock, &pkt, sizeof(T));
 }
 
+#include <iostream>
+
 // 수신 ----------------------------------------------------------------------------------------------
 inline int RecvPacket(SOCKET sock, char* buf, int bufSize)
 {
     const int headerSize = (int)sizeof(PacketHeader);
+	std::cout << "bufSize: " << bufSize << ", headerSize: " << headerSize << std::endl;
     if (bufSize < headerSize) return -1;
 
     int ret = recv(sock, buf, headerSize, MSG_WAITALL);

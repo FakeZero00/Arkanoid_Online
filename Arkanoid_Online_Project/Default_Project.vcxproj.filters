@@ -183,6 +183,9 @@
     <ClInclude Include="AllNetworkLib.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Network\TempProtocol.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Component\MeshRenderer3D.cpp">

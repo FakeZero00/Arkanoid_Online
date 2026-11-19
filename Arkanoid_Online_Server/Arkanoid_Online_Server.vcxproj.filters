@@ -13,14 +13,47 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{1849d969-a0da-4e55-82e5-7e564f88e9de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\Header">
+      <UniqueIdentifier>{2322d290-d031-4af0-add4-07d5ff9b774c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\Source">
+      <UniqueIdentifier>{7340bd14-f698-4024-b082-158e85495998}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="Network\Room.cpp">
+      <Filter>Network\Header</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Network.h">
+    <ClInclude Include="Network\Network.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Protocol.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\TempProtocol.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\PlayerGameState.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Room.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\RoomState.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Session.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="AllNetworkLib.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

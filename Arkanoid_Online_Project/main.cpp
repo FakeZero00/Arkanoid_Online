@@ -39,7 +39,11 @@ map<string, Material*> materialChache;
 INT_PTR CALLBACK DlgProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK RoomCreateDlgProc(HWND, UINT, WPARAM, LPARAM);
 
-/// ///////////////////////////////////
+////////////////////////////////////////
+//네트워크 변수
+SOCKET sock;
+
+///////////////////////////////////////
 
 void RunDialogThread() {
 	// 현재 프로그램의 인스턴스 핸들을 가져옵니다.
@@ -55,7 +59,7 @@ void RunDialogThread() {
 	int retval;
 
 	// 소켓 생성
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
 
 	// connect()
@@ -355,13 +359,13 @@ INT_PTR CALLBACK RoomCreateDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 			// 방 생성 버튼
 			case(IDC_BUTTON1):
 				// 방 이름과 비밀번호 가져오기
-				TCHAR roomName[256];
-				TCHAR password[256];
-				GetDlgItemText(hDlg, IDC_EDIT1, roomName, sizeof(roomName));
-				GetDlgItemText(hDlg, IDC_EDIT2, password, sizeof(password));
+				char roomName[256];
+				char password[256];
+				GetDlgItemTextA(hDlg, IDC_EDIT1, roomName, sizeof(roomName));
+				GetDlgItemTextA(hDlg, IDC_EDIT2, password, sizeof(password));
 				// 방 생성 로직 추가 (예: 서버에 방 생성 요청)
-				std::wcout << L"방 생성 요청: 이름=" << roomName << L", 비밀번호=" << password << std::endl;
-				//이 자리에 패킷 전송 코드 넣기
+				std::cout << "방 생성 요청: 이름=" << roomName << ", 비밀번호=" << password << std::endl;
+				SendRoomInfo(sock, roomName, password);
 				// 대화상자 닫기
 				EndDialog(hDlg, 0);
 				return TRUE;
@@ -424,10 +428,6 @@ void InputProcess(GLFWwindow* window)
 void DrawScene(GLFWwindow* window)
 {
 	AppContext* ctx = static_cast<AppContext*>(glfwGetWindowUserPointer(window));
-
-	//버퍼 초기화
-	/*glClearColor(ctx->bgColor.r, ctx->bgColor.g, ctx->bgColor.b, ctx->bgColor.a);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/
 
 	//활성화 되어 있는 카메라 추출
 	vector<Camera*> activeCameras;
