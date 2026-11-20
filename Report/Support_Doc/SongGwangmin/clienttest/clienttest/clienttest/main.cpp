@@ -1,14 +1,17 @@
 #include "Common.h"
-#include "Vec2D.h"
+#include "Object.h"
 #include "../../../UdpPaddleProtocol.h"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <system_error>
 #include <thread>
+#include <vector>
 
 using Clock = std::chrono::steady_clock;
 constexpr auto SendInterval = std::chrono::milliseconds(33);
@@ -16,8 +19,8 @@ constexpr auto PositionRefreshInterval = std::chrono::milliseconds(250);
 constexpr auto PeerTimeout = std::chrono::seconds(3);
 
 namespace {
-Vec2D localBous;
-Vec2D remoteBous;
+std::vector<std::unique_ptr<Object>> objects;
+Object remoteObjects[ObjectCount];
 std::queue<PositionPacket> pendingPositions;
 std::mutex queueMutex;
 std::mutex positionMutex;
@@ -88,12 +91,14 @@ void stopClient(ClientState& state) {
 
 int receiveRemotePositions(SOCKET sock, ClientState& state) {
     Clock::time_point lastReceived{};
-    std::uint32_t lastSequence = 0;
+    std::array<std::uint32_t, ObjectCount> lastSequence{};
+    std::array<bool, ObjectCount> received{};
 
     while (state.running) {
         const auto now = Clock::now();
         if (lastReceived != Clock::time_point{} && now - lastReceived >= PeerTimeout) {
             lastReceived = {};
+            received.fill(false);
             std::lock_guard<std::mutex> lock(positionMutex);
             state.hasRemotePosition = false;
             state.displayDirty = true;
@@ -116,13 +121,16 @@ int receiveRemotePositions(SOCKET sock, ClientState& state) {
         if (bytes != static_cast<int>(sizeof(packet)) || !decodePosition(packet, position)) continue;
 
         std::lock_guard<std::mutex> lock(positionMutex);
-        if (state.hasRemotePosition && !isNewerSequence(position.sequence, lastSequence)) continue;
+        const auto id = position.objectId;
+        if (received[id] && !isNewerSequence(position.sequence, lastSequence[id])) continue;
 
-        const bool changed = !state.hasRemotePosition || position.x != remoteBous.x ||
-            position.y != remoteBous.y;
-        remoteBous = {position.x, position.y};
+        const bool changed = !received[id] || position.x != remoteObjects[id].position.x ||
+            position.y != remoteObjects[id].position.y;
+        remoteObjects[id].position.x = position.x;
+        remoteObjects[id].position.y = position.y;
         state.hasRemotePosition = true;
-        lastSequence = position.sequence;
+        received[id] = true;
+        lastSequence[id] = position.sequence;
         lastReceived = now;
         if (changed) {
             state.displayDirty = true;
@@ -133,14 +141,26 @@ int receiveRemotePositions(SOCKET sock, ClientState& state) {
 }
 
 void printPositions(ClientState& state) {
+    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO console{};
+    const bool hasConsole = GetConsoleScreenBufferInfo(output, &console) != FALSE;
+    const COORD origin = console.dwCursorPosition;
+
     std::unique_lock<std::mutex> lock(positionMutex);
     while (true) {
         state.displayReady.wait_for(lock, std::chrono::milliseconds(100),
             [&] { return state.displayDirty || !state.running; });
         if (!state.displayDirty && !state.running) break;
 
-        const Vec2D local = localBous;
-        const Vec2D remote = remoteBous;
+        std::vector<Vec2D> positions;
+        positions.reserve(objects.size());
+        for (const auto& object : objects) {
+            positions.push_back(object->position);
+        }
+        std::array<Vec2D, ObjectCount> remotePositions;
+        for (std::size_t i = 0; i < remotePositions.size(); ++i) {
+            remotePositions[i] = remoteObjects[i].position;
+        }
         const bool hasRemote = state.hasRemotePosition;
         state.displayDirty = false;
         lock.unlock();
@@ -153,8 +173,13 @@ void printPositions(ClientState& state) {
             }
         }
 
-        printf("\r[local] (%10.6g,%10.6g) [remote] (%10.6g,%10.6g) %-6s q=%-5s",
-            local.x, local.y, remote.x, remote.y, hasRemote ? "" : "(wait)", queueLength);
+        if (hasConsole) SetConsoleCursorPosition(output, origin);
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+            printf("[%zu] %-4s local=(%+9.4f,%+9.4f) remote=(%+9.4f,%+9.4f)\n",
+                i, i == 0 ? "Bous" : "Ball", positions[i].x, positions[i].y,
+                remotePositions[i].x, remotePositions[i].y);
+        }
+        printf("q=%-5s peer=%-7s\n", queueLength, hasRemote ? "active" : "waiting");
         fflush(stdout);
 
         lock.lock();
@@ -165,7 +190,7 @@ void printPositions(ClientState& state) {
     fflush(stdout);
 }
 
-DWORD updateLocalPosition(HANDLE input, bool observe, ClientState& state) {
+DWORD UpdateAndFillqueue(HANDLE input, bool observe, ClientState& state) {
     DirectionKeys keys;
     auto previousUpdate = Clock::now();
 
@@ -180,25 +205,21 @@ DWORD updateLocalPosition(HANDLE input, bool observe, ClientState& state) {
         previousUpdate = now;
 
         const Vec2D direction = observe ? Vec2D{} : keys.direction();
-        Vec2D position;
-        bool changed;
         {
-            std::lock_guard<std::mutex> lock(positionMutex);
-            const Vec2D previous = localBous;
-            updatePosition(localBous, direction, deltaTime.count());
-            position = localBous;
-            changed = position.x != previous.x || position.y != previous.y;
-            if (changed) {
-                state.displayDirty = true;
-                state.displayReady.notify_one();
+            std::lock_guard<std::mutex> positionLock(positionMutex);
+            updatePosition(objects.front()->position, direction, deltaTime.count());
+            for (const auto& object : objects) {
+                object->Update(deltaTime.count());
             }
-        }
 
-        if (changed) {
-            const PositionPacket packet = encodePosition({0, position.x, position.y});
-            std::lock_guard<std::mutex> lock(queueMutex);
-            pendingPositions.push(packet);
+            std::lock_guard<std::mutex> queueLock(queueMutex);
+            for (std::size_t i = 0; i < objects.size(); ++i) {
+                pendingPositions.push(encodePosition({0, static_cast<std::uint32_t>(i),
+                    objects[i]->position.x, objects[i]->position.y}));
+            }
+            state.displayDirty = true;
         }
+        state.displayReady.notify_one();
 
         Sleep(16);
     }
@@ -207,7 +228,7 @@ DWORD updateLocalPosition(HANDLE input, bool observe, ClientState& state) {
 }
 
 int sendLocalPositions(SOCKET sock, const ClientState& state) {
-    PositionPacket lastSent = encodePosition({0, 0.0f, 0.0f});
+    PositionPacket lastSent = encodePosition({0, 0, 0.0f, 0.0f});
     std::uint32_t nextSequence = 1;
     auto lastSend = Clock::now() - PositionRefreshInterval;
 
@@ -250,6 +271,18 @@ int sendLocalPositions(SOCKET sock, const ClientState& state) {
 }
 
 int runClient(SOCKET sock, HANDLE input, bool observe) {
+    objects.clear();
+    objects.push_back(std::make_unique<Bous>());
+    const Vec2D directions[] = {
+        {0.0f, 1.0f},
+        {0.0f, -1.0f},
+        {-1.0f, 0.0f},
+        {1.0f, 0.0f}
+    };
+    for (std::uint32_t i = 1; i < ObjectCount; ++i) {
+        objects.push_back(std::make_unique<Ball>(directions[i - 1]));
+    }
+
     ClientState state;
     int receiveError = 0;
     int sendError = 0;
@@ -282,7 +315,7 @@ int runClient(SOCKET sock, HANDLE input, bool observe) {
         return 1;
     }
 
-    const DWORD inputError = updateLocalPosition(input, observe, state);
+    const DWORD inputError = UpdateAndFillqueue(input, observe, state);
     stopClient(state);
     sendThread.join();
     receiveThread.join();
