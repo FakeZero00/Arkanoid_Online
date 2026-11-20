@@ -30,7 +30,6 @@ enum RobbyType : uint16_t {
 
 enum InGameTcpType : uint16_t {
     CS_GAME_EVENT = IN_GAME_TCP_BEGIN,   // 클라이언트 → 서버 : 내 이벤트
-	CS_ROOM_INFO,                        // 클라이언트 → 서버 : 방 정보 (서버 이름, 플레이어 이름)
     SC_OPP_EVENT,                        // 서버 → 클라이언트 : 상대 이벤트 (본문은 CS_GAME_EVENT와 같음)
     SC_TIME_SYNC,                        // 서버 → 클라이언트 : 남은 시간
     SC_GAME_END,                         // 서버 → 클라이언트 : 게임 결과
