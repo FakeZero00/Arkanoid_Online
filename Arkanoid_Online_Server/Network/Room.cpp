@@ -1,24 +1,27 @@
-#include "Room.h"
+ï»¿#include "Room.h"
 
-// ÀÌº¥Æ®°¡ ¸»ÀÌ µÇ´ÂÁö °Ë»ç. Á¤»óÀÌ¸é nullptr, ÀÌ»óÇÏ¸é ÀÌÀ¯ ¹®ÀÚ¿­
+// ì´ë²¤íŠ¸ ê²€ì‚¬ Â· ë°˜ì˜ (Room.cpp ì•ˆì—ì„œë§Œ ì‚¬ìš©) -----------------------------------------
+namespace {
+
+// ì´ë²¤íŠ¸ê°€ ë§ì´ ë˜ëŠ”ì§€ ê²€ì‚¬. ì •ìƒì´ë©´ nullptr, ì´ìƒí•˜ë©´ ì´ìœ  ë¬¸ìì—´
 const char* ValidateEvent(const PlayerGameState& st, const GameEventPacket& p)
 {
-    if (p.score < st.score)       return "Á¡¼ö°¡ ÁÙ¾îµê";
-    if (p.timeMs < st.lastTimeMs) return "timeMs°¡ ÀÌÀüº¸´Ù ÀÛÀ½";
+    if (p.score < st.score)       return "ì ìˆ˜ê°€ ì¤„ì–´ë“¦";
+    if (p.timeMs < st.lastTimeMs) return "timeMsê°€ ì´ì „ë³´ë‹¤ ì‘ìŒ";
 
     switch (p.event) {
     case BLOCK_HIT:
     case BLOCK_BROKEN:
-        if (p.arg16 >= BLOCK_COUNT) return "ºí·Ï ÀÎµ¦½º ¹üÀ§ ¹Û";
+        if (p.arg16 >= BLOCK_COUNT) return "ë¸”ë¡ ì¸ë±ìŠ¤ ë²”ìœ„ ë°–";
         break;
     case STAGE_CLEAR:
-        if (p.arg8 != st.stage) return "Áö±İ ½ºÅ×ÀÌÁö¿Í ´Ù¸¥ ¹øÈ£¸¦ Å¬¸®¾î";
-        if (st.cleared)         return "ÀÌ¹Ì Å¬¸®¾îÇÑ ½ºÅ×ÀÌÁö";
+        if (p.arg8 != st.stage) return "ì§€ê¸ˆ ìŠ¤í…Œì´ì§€ì™€ ë‹¤ë¥¸ ë²ˆí˜¸ë¥¼ í´ë¦¬ì–´";
+        if (st.cleared)         return "ì´ë¯¸ í´ë¦¬ì–´í•œ ìŠ¤í…Œì´ì§€";
         break;
     case STAGE_START:
-        if (!st.cleared)              return "Áö±İ ½ºÅ×ÀÌÁö¸¦ Å¬¸®¾îÇÏÁö ¾Ê°í ´ÙÀ½ ½ºÅ×ÀÌÁö ½ÃÀÛ";
-        if (p.arg8 != st.stage + 1)   return "½ºÅ×ÀÌÁö ¼ø¼­°¡ ¸ÂÁö ¾ÊÀ½";
-        if (p.arg8 > MAX_STAGE)       return "½ºÅ×ÀÌÁö ¹üÀ§ ¹Û";
+        if (!st.cleared)              return "ì§€ê¸ˆ ìŠ¤í…Œì´ì§€ë¥¼ í´ë¦¬ì–´í•˜ì§€ ì•Šê³  ë‹¤ìŒ ìŠ¤í…Œì´ì§€ ì‹œì‘";
+        if (p.arg8 != st.stage + 1)   return "ìŠ¤í…Œì´ì§€ ìˆœì„œê°€ ë§ì§€ ì•ŠìŒ";
+        if (p.arg8 > MAX_STAGE)       return "ìŠ¤í…Œì´ì§€ ë²”ìœ„ ë°–";
         break;
     default:
         break;
@@ -26,7 +29,7 @@ const char* ValidateEvent(const PlayerGameState& st, const GameEventPacket& p)
     return nullptr;
 }
 
-// °Ë»ç¸¦ Åë°úÇÑ ÀÌº¥Æ®¸¦ »óÅÂ¿¡ ¹İ¿µ
+// ê²€ì‚¬ë¥¼ í†µê³¼í•œ ì´ë²¤íŠ¸ë¥¼ ìƒíƒœì— ë°˜ì˜
 void ApplyEvent(PlayerGameState& st, const GameEventPacket& p)
 {
     st.score = p.score;
@@ -42,34 +45,105 @@ void ApplyEvent(PlayerGameState& st, const GameEventPacket& p)
     }
 }
 
+} // namespace
+
+// ìƒì„± Â· ì†Œë©¸ ----------------------------------------------------------------------
+Room::Room(Session* host)
+{
+    InitializeCriticalSection(&cs);
+    sessions[0] = host;
+}
+
+Room::~Room()
+{
+    DeleteCriticalSection(&cs);
+}
+
+// ì½ê¸° ì „ìš© ------------------------------------------------------------------------
+RoomState Room::GetState() const
+{
+    EnterCriticalSection(&cs);
+    RoomState s = state;
+    LeaveCriticalSection(&cs);
+    return s;
+}
+
+bool Room::IsFull() const
+{
+    EnterCriticalSection(&cs);
+    bool full = (sessions[0] != nullptr && sessions[1] != nullptr);
+    LeaveCriticalSection(&cs);
+    return full;
+}
+
+Session* Room::GetSession(int idx) const
+{
+    if (idx < 0 || idx > 1) return nullptr;
+    EnterCriticalSection(&cs);
+    Session* s = sessions[idx];
+    LeaveCriticalSection(&cs);
+    return s;
+}
+
+uint32_t Room::GetScore(int idx) const
+{
+    if (idx < 0 || idx > 1) return 0;
+    EnterCriticalSection(&cs);
+    uint32_t score = states[idx].score;
+    LeaveCriticalSection(&cs);
+    return score;
+}
+
+int Room::IndexOf(Session* s) const
+{
+    return sessions[0] == s ? 0 : (sessions[1] == s ? 1 : -1);
+}
+
+// ë™ì‘ -----------------------------------------------------------------------------
+bool Room::Join(Session* guest)
+{
+    EnterCriticalSection(&cs);
+    bool ok = (state == RoomState::Waiting && sessions[1] == nullptr && guest != sessions[0]);
+    if (ok) sessions[1] = guest;
+    LeaveCriticalSection(&cs);
+    return ok;
+}
+
 void Room::StartGame()
 {
     uint32_t seed = (uint32_t)GetTickCount64() ^ ((uint32_t)rand() << 16);
 
+    // í™•ì¸ê³¼ ë³€ê²½ì„ ê°™ì€ ì ê¸ˆ ì•ˆì—ì„œ â†’ ë‘ ë²ˆ ì‹œì‘ë˜ì§€ ì•ŠìŒ
     EnterCriticalSection(&cs);
-    state = RoomState::Playing;
+    bool ok = (state == RoomState::Waiting && sessions[0] && sessions[1]);
+    if (ok) state = RoomState::Playing;
     Session* a = sessions[0];
     Session* b = sessions[1];
     LeaveCriticalSection(&cs);
 
+    if (!ok) {
+        printf("[ë°©] ê²Œì„ ì‹œì‘ ì‹¤íŒ¨: ëŒ€ê¸° ìƒíƒœê°€ ì•„ë‹ˆê±°ë‚˜ ë‘ ëª…ì´ ëª¨ì´ì§€ ì•ŠìŒ\n");
+        return;
+    }
+
     GameStartPacket pkt = MakeGameStart(seed, TIME_LIMIT_SEC, COUNTDOWN_MS);
     a->Send(pkt);
     b->Send(pkt);
-    printf("[¹æ] °ÔÀÓ ½ÃÀÛ: ¼¼¼Ç %d vs ¼¼¼Ç %d (seed=%08X, Á¦ÇÑ %uÃÊ, ´ë±â %ums)\n",
+    printf("[ë°©] ê²Œì„ ì‹œì‘: ì„¸ì…˜ %d vs ì„¸ì…˜ %d (seed=%08X, ì œí•œ %uì´ˆ, ëŒ€ê¸° %ums)\n",
         a->GetId(), b->GetId(), seed, TIME_LIMIT_SEC, COUNTDOWN_MS);
 }
 
 void Room::OnGameEvent(Session* from, GameEventPacket pkt)
 {
     if (!IsValidEventType(pkt.event)) {
-        printf("[¹æ] ¼¼¼Ç %d: Àß¸øµÈ event °ª %u ¡æ Áß°è ¾È ÇÔ\n", from->GetId(), pkt.event);
+        printf("[ë°©] ì„¸ì…˜ %d: ì˜ëª»ëœ event ê°’ %u â†’ ì¤‘ê³„ ì•ˆ í•¨\n", from->GetId(), pkt.event);
         return;
     }
 
-    // Àá±İ ¾È¿¡¼­´Â °Ë»ç ¡¤ °»½Å ¡¤ º¹»ç¸¸ ÇÏ°í, send¿Í printf´Â Àá±İ ¹Û¿¡¼­
+    // ì ê¸ˆ ì•ˆì—ì„œëŠ” ê²€ì‚¬ Â· ê°±ì‹  Â· ë³µì‚¬ë§Œ í•˜ê³ , sendì™€ printfëŠ” ì ê¸ˆ ë°–ì—ì„œ
     EnterCriticalSection(&cs);
-    Session* opp = nullptr;
-    const char* reject = nullptr;
+    Session*        opp = nullptr;
+    const char*     reject = nullptr;
     PlayerGameState after{};
     bool            bothFinished = false, justFinished = false;
     int idx = IndexOf(from);
@@ -88,26 +162,26 @@ void Room::OnGameEvent(Session* from, GameEventPacket pkt)
     LeaveCriticalSection(&cs);
 
     if (idx < 0 || (!opp && !reject)) {
-        printf("[¹æ] ¼¼¼Ç %d: °ÔÀÓ ÁßÀÌ ¾Æ´Ô ¡æ ¹«½Ã\n", from->GetId());
+        printf("[ë°©] ì„¸ì…˜ %d: ê²Œì„ ì¤‘ì´ ì•„ë‹˜ â†’ ë¬´ì‹œ\n", from->GetId());
         return;
     }
     if (reject) {
-        printf("[°Ë»ç] ¼¼¼Ç %d: %s °ÅºÎ (%s) ¡æ Áß°è ¾È ÇÔ. ¼­¹ö ±â·Ï score=%u stage=%u, ¹ŞÀº score=%u timeMs=%u arg8=%u arg16=%u\n",
+        printf("[ê²€ì‚¬] ì„¸ì…˜ %d: %s ê±°ë¶€ (%s) â†’ ì¤‘ê³„ ì•ˆ í•¨. ì„œë²„ ê¸°ë¡ score=%u stage=%u, ë°›ì€ score=%u timeMs=%u arg8=%u arg16=%u\n",
             from->GetId(), EVENT_NAME[pkt.event], reject, after.score, after.stage,
             pkt.score, pkt.timeMs, pkt.arg8, pkt.arg16);
         return;
     }
 
-    printf("[Áß°è] ¼¼¼Ç %d ¡æ ¼¼¼Ç %d : %s timeMs=%u arg8=%u arg16=%u arg32=%d score=%u\n",
+    printf("[ì¤‘ê³„] ì„¸ì…˜ %d â†’ ì„¸ì…˜ %d : %s timeMs=%u arg8=%u arg16=%u arg32=%d score=%u\n",
         from->GetId(), opp->GetId(), EVENT_NAME[pkt.event], pkt.timeMs,
         pkt.arg8, pkt.arg16, pkt.arg32, pkt.score);
-    printf("[»óÅÂ] ¼¼¼Ç %d: score=%u stage=%u%s%s\n", from->GetId(), after.score, after.stage,
-        after.cleared ? " (Å¬¸®¾î)" : "", after.finished ? " (¸ğµç ½ºÅ×ÀÌÁö ¿Ï·á)" : "");
+    printf("[ìƒíƒœ] ì„¸ì…˜ %d: score=%u stage=%u%s%s\n", from->GetId(), after.score, after.stage,
+        after.cleared ? " (í´ë¦¬ì–´)" : "", after.finished ? " (ëª¨ë“  ìŠ¤í…Œì´ì§€ ì™„ë£Œ)" : "");
     if (justFinished)
-        printf("[»óÅÂ] ¼¼¼Ç %d ¸ğµç ½ºÅ×ÀÌÁö Å¬¸®¾î%s\n", from->GetId(),
-            bothFinished ? " ¡æ µÎ »ç¶÷ ¸ğµÎ ¿Ï·á (Á¾·á ÆÇÁ¤Àº 11/26 ÀÏÁ¤)" : "");
+        printf("[ìƒíƒœ] ì„¸ì…˜ %d ëª¨ë“  ìŠ¤í…Œì´ì§€ í´ë¦¬ì–´%s\n", from->GetId(),
+            bothFinished ? " â†’ ë‘ ì‚¬ëŒ ëª¨ë‘ ì™„ë£Œ (ì¢…ë£Œ íŒì •ì€ 11/26 ì¼ì •)" : "");
 
-    pkt.type = SC_OPP_EVENT;       // º»¹®Àº ±×´ë·Î, type¸¸ ¹Ù²Ş
+    pkt.type = SC_OPP_EVENT;       // ë³¸ë¬¸ì€ ê·¸ëŒ€ë¡œ, typeë§Œ ë°”ê¿ˆ
     opp->Send(pkt);
 }
 
@@ -116,20 +190,23 @@ void Room::OnLeave(Session* s)
     EnterCriticalSection(&cs);
     Session* opp = nullptr;
     uint32_t oppScore = 0, leftScore = 0;
-    if (state == RoomState::Playing) {        // È®ÀÎ°ú º¯°æÀ» °°Àº Àá±İ ¾È¿¡¼­ ¡æ ÇÑ ¹ø¸¸ Á¾·á
+    int idx = IndexOf(s);
+    if (state == RoomState::Playing) {        // í™•ì¸ê³¼ ë³€ê²½ì„ ê°™ì€ ì ê¸ˆ ì•ˆì—ì„œ â†’ í•œ ë²ˆë§Œ ì¢…ë£Œ
         state = RoomState::Ended;
-        int idx = IndexOf(s);
         if (idx >= 0) {
             opp = sessions[1 - idx];
             oppScore = states[1 - idx].score;
             leftScore = states[idx].score;
         }
     }
+    else if (state == RoomState::Waiting && idx == 1) {
+        sessions[1] = nullptr;                // ì‹œì‘ ì „ì— ê²ŒìŠ¤íŠ¸ê°€ ë‚˜ê°€ë©´ ìë¦¬ë§Œ ë¹„ì›€
+    }
     LeaveCriticalSection(&cs);
 
     if (opp) {
         opp->Send(MakeOppLeft());
-        opp->Send(MakeGameEnd(RESULT_WIN, REASON_OPP_LEFT, oppScore, leftScore));  // ¹Ş´Â »ç¶÷ ±âÁØ: ³» Á¡¼ö, »ó´ë Á¡¼ö
-        printf("[¹æ] ¼¼¼Ç %d ÀÌÅ» ¡æ ¼¼¼Ç %d ½Â¸® Ã³¸® (Á¡¼ö %u : %u)\n", s->GetId(), opp->GetId(), oppScore, leftScore);
+        opp->Send(MakeGameEnd(RESULT_WIN, REASON_OPP_LEFT, oppScore, leftScore));  // ë°›ëŠ” ì‚¬ëŒ ê¸°ì¤€: ë‚´ ì ìˆ˜, ìƒëŒ€ ì ìˆ˜
+        printf("[ë°©] ì„¸ì…˜ %d ì´íƒˆ â†’ ì„¸ì…˜ %d ìŠ¹ë¦¬ ì²˜ë¦¬ (ì ìˆ˜ %u : %u)\n", s->GetId(), opp->GetId(), oppScore, leftScore);
     }
 }
