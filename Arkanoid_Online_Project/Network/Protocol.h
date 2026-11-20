@@ -66,7 +66,7 @@ struct PacketHeader {
 
 //접속 패킷
 struct RoomInfoPacket : PacketHeader {
-    char serverName[32];			// 서버 이름
+    char roomName[32];			    // 방 이름
     char playerName[32];			// 플레이어 이름
 };
 
