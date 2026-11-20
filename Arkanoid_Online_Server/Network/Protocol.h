@@ -273,7 +273,7 @@ inline bool IsValidEventType(uint8_t e) { return e < EVENT_COUNT; }
 
 //------------------------------------------------------------------
 // 방 정보 송신
-bool SendRoomInfo(SOCKET sock, const char* serverName, const char* playerName)
+inline bool SendRoomInfo(SOCKET sock, const char* serverName, const char* playerName)
 {
     RoomInfoPacket p{};
     p.size = sizeof(RoomInfoPacket);
