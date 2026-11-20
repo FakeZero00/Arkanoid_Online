@@ -20,12 +20,7 @@ constexpr uint16_t IN_GAME_TCP_END   = 150;
 constexpr int      MAX_PACKET_SIZE   = 512;      // RecvPacket 버퍼 크기
 
 enum LobbyType : uint16_t {
-    CS_LOBBY_INFO = LOBBY_TCP_BEGIN        // 클라이언트 → 서버 : 방 정보 (서버 이름, 플레이어 이름)
-    //SC_OPP_EVENT,                        // 서버 → 클라이언트 : 상대 이벤트 (본문은 CS_GAME_EVENT와 같음)
-    //SC_TIME_SYNC,                        // 서버 → 클라이언트 : 남은 시간
-    //SC_GAME_END,                         // 서버 → 클라이언트 : 게임 결과
-    //SC_OPP_LEFT,                         // 서버 → 클라이언트 : 상대 연결 끊김
-    //SC_GAME_START,                       // 서버 → 클라이언트 : 게임 시작 (시드, 제한시간, 대기 시간)
+    CS_LOBBY_INFO = LOBBY_TCP_BEGIN        // 클라이언트 → 서버 : 방 정보 (방 이름, 플레이어 이름)
 };
 
 enum InGameTcpType : uint16_t {
@@ -65,7 +60,7 @@ struct PacketHeader {
 
 //접속 패킷
 struct RoomInfoPacket : PacketHeader {
-    char serverName[32];			// 서버 이름
+    char roomName[32];			    // 방 이름
     char playerName[32];			// 플레이어 이름
 };
 
@@ -273,15 +268,15 @@ inline bool IsValidEventType(uint8_t e) { return e < EVENT_COUNT; }
 
 //------------------------------------------------------------------
 // 방 정보 송신
-inline bool SendRoomInfo(SOCKET sock, const char* serverName, const char* playerName)
+inline bool SendRoomInfo(SOCKET sock, const char* roomName, const char* playerName)
 {
     RoomInfoPacket p{};
     p.size = sizeof(RoomInfoPacket);
-    p.type = CS_ROBBY_INFO;
+    p.type = CS_LOBBY_INFO;
     // 문자열 복사
-    strncpy_s(p.serverName, serverName, sizeof(p.serverName) - 1);
+    strncpy_s(p.roomName, roomName, sizeof(p.roomName) - 1);
     strncpy_s(p.playerName, playerName, sizeof(p.playerName) - 1);
-    p.serverName[sizeof(p.serverName) - 1] = '\0';
+    p.roomName[sizeof(p.roomName) - 1] = '\0';
     p.playerName[sizeof(p.playerName) - 1] = '\0';
 
     return SendTyped(sock, p);

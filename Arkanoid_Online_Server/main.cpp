@@ -72,9 +72,9 @@ DWORD WINAPI SessionThread(LPVOID arg)
 	while ((n = RecvPacket(s->GetSocket(), buf, sizeof(buf))) > 0) {
 		uint16_t type = PeekType(buf);
 
-		if (type == CS_ROBBY_INFO) {
+		if (type == CS_LOBBY_INFO) {
 			RoomInfoPacket pkt;
-			if (ReadTyped(buf, n, pkt)) printf("[세션 %d] 서버 이름=%s, 플레이어 이름=%s\n", s->GetId(), pkt.serverName, pkt.playerName);
+			if (ReadTyped(buf, n, pkt)) printf("[세션 %d] 방 이름=%s, 플레이어 이름=%s\n", s->GetId(), pkt.roomName, pkt.playerName);
 			else printf("[세션 %d] RoomInfoPacket 크기가 다름 (%d바이트) → 무시\n", s->GetId(), n);
 		}
 
