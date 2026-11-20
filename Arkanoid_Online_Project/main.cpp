@@ -358,13 +358,13 @@ INT_PTR CALLBACK RoomCreateDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 		switch (LOWORD(wParam)) {
 			// 방 생성 버튼
 			case(IDC_BUTTON1):
-				// 방 이름과 비밀번호 가져오기
+				// 방 이름과 플레이어 이름 가져오기
 				char roomName[256];
-				char password[256];
+				char playerName[256];
 				GetDlgItemTextA(hDlg, IDC_EDIT1, roomName, sizeof(roomName));
-				GetDlgItemTextA(hDlg, IDC_EDIT2, password, sizeof(password));
+				GetDlgItemTextA(hDlg, IDC_EDIT2, playerName, sizeof(playerName));
 				// 방 생성 로직 추가 (예: 서버에 방 생성 요청)
-				std::cout << "방 생성 요청: 이름=" << roomName << ", 플레이어 이름=" << password << std::endl;
+				std::cout << "방 생성 요청: 이름=" << roomName << ", 플레이어 이름=" << playerName << std::endl;
 				SendRoomInfo(sock, roomName, playerName);
 				// 대화상자 닫기
 				EndDialog(hDlg, 0);
