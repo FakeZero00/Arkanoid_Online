@@ -77,7 +77,7 @@ DWORD WINAPI SessionThread(LPVOID arg)
 			if (ReadTyped(buf, n, pkt)) printf("[세션 %d] 방 이름=%s, 플레이어 이름=%s\n", s->GetId(), pkt.roomName, pkt.playerName);
 			else printf("[세션 %d] RoomInfoPacket 크기가 다름 (%d바이트) → 무시\n", s->GetId(), n);
 		}
-
+		
 		/*Room* room = GetRoom(s);
 		if (!room) {
 			printf("[세션 %d] 방이 없는데 인게임 패킷 type=%u → 무시\n", s->GetId(), type);
