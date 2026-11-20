@@ -9,7 +9,8 @@ constexpr auto PlayerTimeout = std::chrono::seconds(3);
 
 struct Player {
     sockaddr_in address{};
-    PaddlePosition position{};
+    PaddlePosition positions[ObjectCount]{};
+    bool received[ObjectCount]{};
     Clock::time_point lastReceived{};
     bool registered = false;
 };
@@ -79,10 +80,13 @@ int relayPositions(SOCKET sock) {
         if (destination == nullptr) continue;
 
         Player& player = players[senderIndex];
-        if (!joining && !isNewerSequence(position.sequence, player.position.sequence)) continue;
+        const auto id = position.objectId;
+        PaddlePosition& previous = player.positions[id];
+        if (player.received[id] && !isNewerSequence(position.sequence, previous.sequence)) continue;
 
-        const bool changed = joining || position.x != player.position.x || position.y != player.position.y;
-        player.position = position;
+        const bool changed = !player.received[id] || position.x != previous.x || position.y != previous.y;
+        previous = position;
+        player.received[id] = true;
         player.lastReceived = now;
 
         const char name = senderIndex == 0 ? 'A' : 'B';
@@ -98,14 +102,14 @@ int relayPositions(SOCKET sock) {
         if (!destination->registered) continue;
 
         // Use a server sequence so a replacement player's first packet is newer too.
-        const PositionPacket outgoing = encodePosition({++relaySequence, position.x, position.y});
+        const PositionPacket outgoing = encodePosition({++relaySequence, position.objectId, position.x, position.y});
         const int sentBytes = sendto(sock, reinterpret_cast<const char*>(&outgoing), sizeof(outgoing), 0,
             reinterpret_cast<const sockaddr*>(&destination->address), sizeof(destination->address));
         if (sentBytes == SOCKET_ERROR) {
             fprintf(stderr, "sendto() to %c failed (%d)\n", destinationName, WSAGetLastError());
         } else if (changed) {
-            printf("[relay] %c -> %c clientSeq=%u relaySeq=%u x=%.6f y=%.6f\n",
-                name, destinationName, position.sequence, relaySequence, position.x, position.y);
+            printf("[relay] %c -> %c id=%u clientSeq=%u relaySeq=%u x=%.6f y=%.6f\n",
+                name, destinationName, position.objectId, position.sequence, relaySequence, position.x, position.y);
             fflush(stdout);
         }
     }
