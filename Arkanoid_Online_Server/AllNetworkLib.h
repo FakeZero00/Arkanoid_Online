@@ -9,6 +9,3 @@
 //타입
 #include "PlayerGameState.h"
 #include "RoomState.h"
-
-//임시 프로토콜
-#include "TempProtocol.h"

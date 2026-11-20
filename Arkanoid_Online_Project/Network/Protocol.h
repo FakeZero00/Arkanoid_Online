@@ -13,12 +13,24 @@
 #include <cstdint>
 #pragma comment(lib, "ws2_32")
 
+constexpr uint16_t ROBBY_TCP_BEGIN = 1;
+constexpr uint16_t ROBBY_TCP_END = 50;
 constexpr uint16_t IN_GAME_TCP_BEGIN = 100;
 constexpr uint16_t IN_GAME_TCP_END   = 150;
 constexpr int      MAX_PACKET_SIZE   = 512;      // RecvPacket 버퍼 크기
 
+enum RobbyType : uint16_t {
+    CS_ROBBY_INFO = ROBBY_TCP_BEGIN        // 클라이언트 → 서버 : 방 정보 (서버 이름, 플레이어 이름)
+    //SC_OPP_EVENT,                        // 서버 → 클라이언트 : 상대 이벤트 (본문은 CS_GAME_EVENT와 같음)
+    //SC_TIME_SYNC,                        // 서버 → 클라이언트 : 남은 시간
+    //SC_GAME_END,                         // 서버 → 클라이언트 : 게임 결과
+    //SC_OPP_LEFT,                         // 서버 → 클라이언트 : 상대 연결 끊김
+    //SC_GAME_START,                       // 서버 → 클라이언트 : 게임 시작 (시드, 제한시간, 대기 시간)
+};
+
 enum InGameTcpType : uint16_t {
     CS_GAME_EVENT = IN_GAME_TCP_BEGIN,   // 클라이언트 → 서버 : 내 이벤트
+	CS_ROOM_INFO,                        // 클라이언트 → 서버 : 방 정보 (서버 이름, 플레이어 이름)
     SC_OPP_EVENT,                        // 서버 → 클라이언트 : 상대 이벤트 (본문은 CS_GAME_EVENT와 같음)
     SC_TIME_SYNC,                        // 서버 → 클라이언트 : 남은 시간
     SC_GAME_END,                         // 서버 → 클라이언트 : 게임 결과
@@ -45,11 +57,20 @@ inline bool IsInGameTcp(uint16_t type) { return type >= IN_GAME_TCP_BEGIN && typ
 
 // 구조체-----------------------------------------------------------------------------------
 #pragma pack(push, 1)
+
+// 모든 패킷의 공통 헤더
 struct PacketHeader {
     uint16_t size;                 // 헤더 포함 전체 바이트 수
     uint16_t type;                 // 위 번호 대역
 };
 
+//접속 패킷
+struct RoomInfoPacket : PacketHeader {
+    char serverName[32];			// 서버 이름
+    char playerName[32];			// 플레이어 이름
+};
+
+//TCP 패킷
 struct GameEventPacket : PacketHeader {  // CS_GAME_EVENT, SC_OPP_EVENT 공용
     uint32_t timeMs;               // 게임 시작 후 경과 시간 (제한시간 판정 · 디버깅용)
     uint8_t  event;                // EventType
@@ -82,6 +103,7 @@ static_assert(sizeof(GameEventPacket) == 20, "GameEventPacket 크기 확인");
 static_assert(sizeof(TimeSyncPacket)  == 6,  "TimeSyncPacket 크기 확인");
 static_assert(sizeof(GameEndPacket)   == 14, "GameEndPacket 크기 확인");
 static_assert(sizeof(GameStartPacket) == 12, "GameStartPacket 크기 확인");
+static_assert(sizeof(RoomInfoPacket) == 68, "RoomInfoPacket 크기 확인");
 
 // 패킷 ---------------------------------------------------------------------------------
 inline GameEventPacket MakeGameEvent(EventType e, uint32_t timeMs, uint32_t score,
@@ -249,3 +271,19 @@ inline bool ReadTyped(const char* buf, int len, T& out)
 }
 
 inline bool IsValidEventType(uint8_t e) { return e < EVENT_COUNT; }
+
+//------------------------------------------------------------------
+// 방 정보 송신
+bool SendRoomInfo(SOCKET sock, const char* serverName, const char* playerName)
+{
+    RoomInfoPacket p{};
+    p.size = sizeof(RoomInfoPacket);
+    p.type = CS_ROBBY_INFO;
+    // 문자열 복사
+    strncpy_s(p.serverName, serverName, sizeof(p.serverName) - 1);
+    strncpy_s(p.playerName, playerName, sizeof(p.playerName) - 1);
+    p.serverName[sizeof(p.serverName) - 1] = '\0';
+    p.playerName[sizeof(p.playerName) - 1] = '\0';
+
+    return SendTyped(sock, p);
+}
