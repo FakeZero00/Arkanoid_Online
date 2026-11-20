@@ -38,6 +38,7 @@ map<string, Material*> materialChache;
 // 대화상자 프로시저
 INT_PTR CALLBACK DlgProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK RoomCreateDlgProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK RoomDlgProc(HWND, UINT, WPARAM, LPARAM);
 
 ////////////////////////////////////////
 //네트워크 변수
@@ -45,7 +46,7 @@ SOCKET sock;
 
 ///////////////////////////////////////
 
-void RunDialogThread() {
+DWORD WINAPI RunDialogThread(LPVOID lpParam) {
 	// 현재 프로그램의 인스턴스 핸들을 가져옵니다.
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 
@@ -53,7 +54,7 @@ void RunDialogThread() {
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
 		err_quit("WSAStartup()");
-		return;
+		return 1;
 	}
 
 	int retval;
@@ -74,14 +75,25 @@ void RunDialogThread() {
 
 	// 대화상자 생성
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
+	return 0;
 }
 
-void RunRoomCreateDialogThread() {
+DWORD WINAPI RunRoomCreateDialogThread(LPVOID lpParam) {
 	// 1. 현재 프로그램의 인스턴스 핸들을 가져옵니다.
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 
 	// 2. 대화상자 생성
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG2), NULL, RoomCreateDlgProc);
+	return 0;
+}
+
+DWORD WINAPI RunRoomDialogThread(LPVOID lpParam) {
+	// 1. 현재 프로그램의 인스턴스 핸들을 가져옵니다.
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+
+	// 2. 대화상자 생성
+	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG3), NULL, RoomDlgProc);
+	return 0;
 }
 
 int main(int argc, char** argv) {
@@ -89,8 +101,7 @@ int main(int argc, char** argv) {
 	std::wcout.imbue(std::locale());
 
 	//다이얼로그 스레드
-	thread dialogThread(RunDialogThread);
-	dialogThread.detach(); // 메인 스레드와 분리하여 실행
+	HANDLE hThread = CreateThread(NULL, 0, RunDialogThread, NULL, 0, NULL);
 
 	//GLFW 초기화
 	if (!glfwInit()) {
@@ -337,8 +348,7 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		switch (LOWORD(wParam)) {
 		// "방 만들기" 버튼 클릭
 		case IDC_BUTTON4:
-			thread dialogThread(RunRoomCreateDialogThread);
-			dialogThread.detach();
+			HANDLE hThread = CreateThread(NULL, 0, RunRoomCreateDialogThread, NULL, 0, NULL);
 			return TRUE;
 		}
 		return FALSE;
@@ -358,6 +368,7 @@ INT_PTR CALLBACK RoomCreateDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 		switch (LOWORD(wParam)) {
 			// 방 생성 버튼
 			case(IDC_BUTTON1):
+			{
 				// 방 이름과 비밀번호 가져오기
 				char roomName[256];
 				char playerName[256];
@@ -368,10 +379,40 @@ INT_PTR CALLBACK RoomCreateDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 				SendRoomInfo(sock, roomName, playerName);
 				// 대화상자 닫기
 				EndDialog(hDlg, 0);
+
+				// 방 생성 후 방 대기실 다이얼로그 실행
+				HANDLE hThread = CreateThread(NULL, 0, RunRoomDialogThread, NULL, 0, NULL);
+				if (hThread) CloseHandle(hThread);
 				return TRUE;
+			}
+
 			case(IDC_BUTTON2): // 취소 버튼
 				EndDialog(hDlg, 0);
 				return TRUE;
+		}
+		return FALSE;
+	case WM_CLOSE:
+		EndDialog(hDlg, 0);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+INT_PTR CALLBACK RoomDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg) {
+	case WM_INITDIALOG:
+		return TRUE;
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+			//나가기 버튼
+			case(IDCANCEL):
+				cout << "방 나가기 버튼 클릭" << endl;
+				EndDialog(hDlg, 0);
+				return TRUE;
+			default:
+				cout << "다른 ID 수신됨: " << LOWORD(wParam) << endl;
+				break;
 		}
 		return FALSE;
 	case WM_CLOSE:

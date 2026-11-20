@@ -12,8 +12,6 @@
 #define IDC_BUTTON4                     1007
 #define IDC_EDIT1                       1008
 #define IDC_EDIT2                       1009
-#define IDOK                            1010
-#define IDCANCEL                        1011
 
 // Next default values for new objects
 // 

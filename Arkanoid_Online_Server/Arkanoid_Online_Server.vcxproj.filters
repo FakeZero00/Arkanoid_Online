@@ -38,9 +38,6 @@
     <ClInclude Include="Network\Protocol.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Network\TempProtocol.h">
-      <Filter>Network\Header</Filter>
-    </ClInclude>
     <ClInclude Include="Network\PlayerGameState.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
