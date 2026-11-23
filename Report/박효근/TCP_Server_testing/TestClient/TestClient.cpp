@@ -18,6 +18,7 @@ std::atomic<bool>      g_connected{ true };
 std::atomic<bool>      g_quitting{ false };    // q로 직접 종료하는 중
 std::atomic<bool>      g_ended{ false };
 std::atomic<long long> g_startTick{ 0 };   // 게임이 시작되는 시각 (GetTickCount64 기준). 0 = 아직 SC_GAME_START 안 받음
+std::atomic<uint16_t>  g_limitSec{ 0 };    // SC_GAME_START로 받은 제한시간
 
 // 수신 스레드 -------------------------------------------------------------------------
 DWORD WINAPI RecvThread(LPVOID arg)
@@ -31,6 +32,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
         case SC_GAME_START: {
             GameStartPacket p;
             if (!ReadTyped(buf, n, p)) break;
+            g_limitSec  = p.timeLimitSec;
             g_startTick = (long long)GetTickCount64() + p.countdownMs;
             printf("\n[서버] 게임 시작! seed=%08X 제한시간=%u초, %ums 후 시작\n",
                    p.seed, p.timeLimitSec, p.countdownMs);
@@ -45,7 +47,9 @@ DWORD WINAPI RecvThread(LPVOID arg)
         }
         case SC_TIME_SYNC: {
             TimeSyncPacket p;
-            if (ReadTyped(buf, n, p)) printf("\n[서버] 남은 시간 %u초\n", p.remainSec);
+            if (!ReadTyped(buf, n, p)) break;
+            if (p.remainSec == 0) printf("\n[서버] 남은 시간 0초 (시간 종료. 이제 보내는 이벤트는 거부됨, t로 유예 시간 테스트)\n");
+            else                  printf("\n[서버] 남은 시간 %u초\n", p.remainSec);
             break;
         }
         case SC_GAME_END: {
@@ -80,6 +84,8 @@ void PrintMenu()
            " 9 잘못된 event 값 (서버가 무시하는지 확인)\n"
            " -- 서버 검사 테스트 (상대에게 가면 안 됨) --\n"
            " a 점수 감소   b 블록 인덱스 범위 밖   c 스테이지 건너뛰기\n"
+           " -- 타이머 테스트 --\n"
+           " t 시간 종료 직후 1초 안에: 제한시간 직전에 일어난 블록 파괴를 늦게 보냄 (받아야 함)\n"
            " m 메뉴 다시 보기   q 종료\n"
            "-----------------------------------------------\n");
 }
@@ -146,7 +152,11 @@ int main(int argc, char* argv[])
         case 'a': pkt = MakeGameEvent(BLOCK_BROKEN, timeMs, score / 2, 0, 0, 100); break;
         case 'b': pkt = MakeGameEvent(BLOCK_BROKEN, timeMs, score, 0, 999, 100); break;
         case 'c': pkt = MakeGameEvent(STAGE_START,  timeMs, score, (uint8_t)(stage + 2)); break;
-        default:  printf("1~9, a~c, m, q 중에서 입력하세요\n"); continue;
+        case 't': timeMs = g_limitSec * 1000u - 1;    // 제한시간 1ms 전에 일어난 일로 보냄
+                  score += 100;
+                  pkt = MakeGameEvent(BLOCK_BROKEN, timeMs, score, 0, blockIdx, 100);
+                  blockIdx = (uint16_t)((blockIdx + 1) % 66); break;
+        default:  printf("1~9, a~c, t, m, q 중에서 입력하세요\n"); continue;
         }
 
         if (!SendTyped(sock, pkt)) { printf("전송 실패: %d\n", WSAGetLastError()); break; }

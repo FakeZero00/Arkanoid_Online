@@ -8,6 +8,11 @@ constexpr uint16_t TIME_LIMIT_SEC = 180;
 constexpr uint16_t COUNTDOWN_MS   = 3000;
 constexpr uint8_t  MAX_STAGE      = 3;
 constexpr uint16_t BLOCK_COUNT    = 66;    // 스테이지 1 기준 (6줄 x 11칸). 블록 번호 방식이 정해지면 수정
+constexpr uint16_t SYNC_INTERVAL_SEC = 5;  // 남은 시간 알림 간격
+constexpr uint16_t GRACE_MS          = 1000; // 시간 종료 후 늦게 도착한 이벤트를 받아주는 유예 시간
+
+// 제한시간. 테스트할 때 180초는 길어서 실행 인자로 바꿀 수 있게 함 (예: TestServer.exe 15)
+uint16_t g_timeLimitSec = TIME_LIMIT_SEC;
 
 const char* EVENT_NAME[EVENT_COUNT] = {
     "BLOCK_HIT", "BLOCK_BROKEN", "ITEM_GET", "ITEM_END",
@@ -62,6 +67,7 @@ const char* ValidateEvent(const PlayerGameState& st, const GameEventPacket& p)
 {
     if (p.score < st.score)       return "점수가 줄어듦";
     if (p.timeMs < st.lastTimeMs) return "timeMs가 이전보다 작음";
+    if (p.timeMs > g_timeLimitSec * 1000u) return "제한시간이 지난 뒤의 이벤트";
 
     switch (p.event) {
     case BLOCK_HIT:
@@ -99,12 +105,21 @@ void ApplyEvent(PlayerGameState& st, const GameEventPacket& p)
 }
 
 // 방 (2명) ------------------------------------------------------------------------
-enum class RoomState { Waiting, Playing, Ended };
+// Playing → (남은 시간 0) → TimeUp (유예 1초, 제한시간 안의 이벤트만 받음) → Ended
+enum class RoomState { Waiting, Playing, TimeUp, Ended };
+
+// 정해진 시각까지 기다림. 1초마다 깨는 방식이 아니라 시작 시각 기준이라 오차가 쌓이지 않음
+void WaitUntil(ULONGLONG tick)
+{
+    ULONGLONG now = GetTickCount64();
+    if (tick > now) Sleep((DWORD)(tick - now));
+}
 
 struct Room {
     Session*        sessions[2] = {};
     PlayerGameState states[2];          // sessions[i]의 상태는 states[i]
     RoomState       state = RoomState::Waiting;
+    ULONGLONG       startTick = 0;      // timeMs = 0 이 되는 시각 (GAME_START 전송 + 대기 시간)
     CRITICAL_SECTION cs;
 
     Room()  { InitializeCriticalSection(&cs); }
@@ -117,16 +132,71 @@ struct Room {
         uint32_t seed = (uint32_t)GetTickCount64() ^ ((uint32_t)rand() << 16);
 
         EnterCriticalSection(&cs);
-        state = RoomState::Playing;
+        state     = RoomState::Playing;
+        startTick = GetTickCount64() + COUNTDOWN_MS;
         Session* a = sessions[0];
         Session* b = sessions[1];
         LeaveCriticalSection(&cs);
 
-        GameStartPacket pkt = MakeGameStart(seed, TIME_LIMIT_SEC, COUNTDOWN_MS);
+        GameStartPacket pkt = MakeGameStart(seed, g_timeLimitSec, COUNTDOWN_MS);
         a->Send(pkt);
         b->Send(pkt);
         printf("[방] 게임 시작: 세션 %d vs 세션 %d (seed=%08X, 제한 %u초, 대기 %ums)\n",
-               a->id, b->id, seed, TIME_LIMIT_SEC, COUNTDOWN_MS);
+               a->id, b->id, seed, g_timeLimitSec, COUNTDOWN_MS);
+
+        // 방마다 타이머 스레드 1개. 게임이 끝나면 스스로 종료
+        HANDLE h = CreateThread(nullptr, 0, TimerThread, this, 0, nullptr);
+        if (h) CloseHandle(h);
+    }
+
+    static DWORD WINAPI TimerThread(LPVOID arg)
+    {
+        ((Room*)arg)->TimerLoop();
+        return 0;
+    }
+
+    // 1초마다 남은 시간을 줄이고, 5초마다 두 클라이언트에 알림.
+    // 상태 확인과 변경은 같은 잠금 안에서 하고, send와 printf는 잠금 밖에서
+    void TimerLoop()
+    {
+        const uint16_t limit = g_timeLimitSec;
+
+        for (uint16_t sec = 0; sec <= limit; ++sec) {
+            WaitUntil(startTick + sec * 1000ULL);
+            uint16_t remain = (uint16_t)(limit - sec);
+
+            EnterCriticalSection(&cs);
+            bool running = (state == RoomState::Playing);
+            if (running && remain == 0) state = RoomState::TimeUp;
+            Session* a = sessions[0];
+            Session* b = sessions[1];
+            LeaveCriticalSection(&cs);
+
+            if (!running) {             // 상대 이탈 등으로 이미 끝남
+                printf("[타이머] 게임이 이미 끝나서 타이머 종료 (남은 시간 %u초 시점)\n", remain);
+                return;
+            }
+            if (remain % SYNC_INTERVAL_SEC == 0) {
+                TimeSyncPacket pkt = MakeTimeSync(remain);
+                a->Send(pkt);
+                b->Send(pkt);
+                printf("[타이머] 남은 시간 %u초 → 두 클라이언트에 전송\n", remain);
+            }
+        }
+        printf("[타이머] 시간 종료 → %ums 동안 제한시간 안의 이벤트만 받음\n", GRACE_MS);
+
+        WaitUntil(startTick + limit * 1000ULL + GRACE_MS);
+
+        EnterCriticalSection(&cs);
+        bool ended = (state == RoomState::TimeUp);
+        if (ended) state = RoomState::Ended;
+        uint32_t s0 = states[0].score, s1 = states[1].score;
+        int id0 = sessions[0]->id, id1 = sessions[1]->id;
+        LeaveCriticalSection(&cs);
+
+        if (ended)
+            printf("[타이머] 유예 끝 → 게임 종료. 세션 %d %u점 : 세션 %d %u점 (승패 판정 · 결과 전송은 11/26 일정)\n",
+                   id0, s0, id1, s1);
     }
 
     void OnGameEvent(Session* from, GameEventPacket pkt)
@@ -142,8 +212,9 @@ struct Room {
         const char*     reject = nullptr;
         PlayerGameState after{};
         bool            bothFinished = false, justFinished = false;
+        bool            inGrace = (state == RoomState::TimeUp);
         int idx = IndexOf(from);
-        if (state == RoomState::Playing && idx >= 0) {
+        if ((state == RoomState::Playing || inGrace) && idx >= 0) {
             PlayerGameState& st = states[idx];
             reject = ValidateEvent(st, pkt);
             if (!reject) {
@@ -168,9 +239,10 @@ struct Room {
             return;
         }
 
-        printf("[중계] 세션 %d → 세션 %d : %s timeMs=%u arg8=%u arg16=%u arg32=%d score=%u\n",
+        printf("[중계] 세션 %d → 세션 %d : %s timeMs=%u arg8=%u arg16=%u arg32=%d score=%u%s\n",
                from->id, opp->id, EVENT_NAME[pkt.event], pkt.timeMs,
-               pkt.arg8, pkt.arg16, pkt.arg32, pkt.score);
+               pkt.arg8, pkt.arg16, pkt.arg32, pkt.score,
+               inGrace ? " (유예 시간 중 도착, 제한시간 안의 이벤트라 받음)" : "");
         printf("[상태] 세션 %d: score=%u stage=%u%s%s\n", from->id, after.score, after.stage,
                after.cleared ? " (클리어)" : "", after.finished ? " (모든 스테이지 완료)" : "");
         if (justFinished)
@@ -186,7 +258,7 @@ struct Room {
         EnterCriticalSection(&cs);
         Session* opp = nullptr;
         uint32_t oppScore = 0, leftScore = 0;
-        if (state == RoomState::Playing) {        // 확인과 변경을 같은 잠금 안에서 → 한 번만 종료
+        if (state == RoomState::Playing || state == RoomState::TimeUp) {  // 확인과 변경을 같은 잠금 안에서 → 한 번만 종료
             state = RoomState::Ended;
             int idx = IndexOf(s);
             if (idx >= 0) {
@@ -282,11 +354,15 @@ DWORD WINAPI SessionThread(LPVOID arg)
     return 0;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return 1;
     setvbuf(stdout, nullptr, _IONBF, 0);       // 로그를 바로바로 출력 (파일로 저장할 때도 안 밀리게)
+    if (argc > 1) {
+        int sec = atoi(argv[1]);
+        if (sec > 0 && sec <= 3600) g_timeLimitSec = (uint16_t)sec;
+    }
     InitializeCriticalSection(&g_lobbyCs);
     srand((unsigned)GetTickCount64());
 
@@ -300,7 +376,7 @@ int main()
         printf("bind/listen 실패: %d\n", WSAGetLastError());
         return 1;
     }
-    printf("테스트 서버 시작 (포트 %u). 클라이언트 2개를 접속시키세요.\n", SERVER_PORT);
+    printf("테스트 서버 시작 (포트 %u, 제한시간 %u초). 클라이언트 2개를 접속시키세요.\n", SERVER_PORT, g_timeLimitSec);
 
     int nextId = 0;
     while (true) {
