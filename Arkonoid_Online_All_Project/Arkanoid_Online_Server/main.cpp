@@ -1,7 +1,12 @@
 #include "AllNetworkLib.h"
 #include <iostream>
+#include <map>
 
 #define SERVERPORT 9090
+
+std::map<char*, Session*> ip2session;
+std::map<Session*, char*> session2ip;
+std::map<Session*, Room*> session2rooms;
 
 DWORD WINAPI SessionThread(LPVOID arg);
 
@@ -58,6 +63,8 @@ int main() {
 		// 세션 생성 및 스레드 시작
 		Session* session = new Session();
 		session->SetSocket(client_sock);
+		ip2session[addr] = session;
+		session2ip[session] = addr;
 		HANDLE h = CreateThread(NULL, 0, SessionThread, session, 0, NULL);
 		if (h) CloseHandle(h);
 	}
@@ -74,7 +81,15 @@ DWORD WINAPI SessionThread(LPVOID arg)
 
 		if (type == CS_LOBBY_INFO) {
 			RoomInfoPacket pkt;
-			if (ReadTyped(buf, n, pkt)) printf("[세션 %d] 방 이름=%s, 플레이어 이름=%s\n", s->GetId(), pkt.roomName, pkt.playerName);
+			if (ReadTyped(buf, n, pkt)) {
+				printf("[세션 %d] 방 이름=%s, 플레이어 이름=%s\n", s->GetId(), pkt.roomName, pkt.playerName);
+
+				// 방 생성 및 세션-방 매핑
+				Room* room = new Room(s);
+				strncpy(room->GetRoomName(), pkt.roomName, sizeof(room->GetRoomName()) - 1);
+				room->GetRoomName()[sizeof(room->GetRoomName()) - 1] = '\0';
+				session2rooms[s] = room;
+			}
 			else printf("[세션 %d] RoomInfoPacket 크기가 다름 (%d바이트) → 무시\n", s->GetId(), n);
 		}
 		

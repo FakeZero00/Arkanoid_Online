@@ -19,9 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Network\AllNetworkLib.h" />
+    <ClInclude Include="..\Network\Network.h" />
+    <ClInclude Include="..\Network\PlayerGameState.h" />
+    <ClInclude Include="..\Network\Protocol.h" />
+    <ClInclude Include="..\Network\Room.h" />
+    <ClInclude Include="..\Network\RoomState.h" />
+    <ClInclude Include="..\Network\Session.h" />
     <ClInclude Include="AllComponent.h" />
     <ClInclude Include="AllDataStructure.h" />
-    <ClInclude Include="AllNetworkLib.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="Component\BoxCollider.h" />
     <ClInclude Include="Component\Camera.h" />
@@ -44,12 +50,6 @@
     <ClInclude Include="Data_Structure\ScreenSize.h" />
     <ClInclude Include="Data_Structure\Vertex.h" />
     <ClInclude Include="Default_Scene.h" />
-    <ClInclude Include="Network\Network.h" />
-    <ClInclude Include="Network\PlayerGameState.h" />
-    <ClInclude Include="Network\Protocol.h" />
-    <ClInclude Include="Network\Room.h" />
-    <ClInclude Include="Network\RoomState.h" />
-    <ClInclude Include="Network\Session.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Script\BallController.h" />
     <ClInclude Include="Script\BlockBehavior.h" />
@@ -63,6 +63,7 @@
     <ClInclude Include="Utility\ShaderManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Network\Room.cpp" />
     <ClCompile Include="Component\BoxCollider.cpp" />
     <ClCompile Include="Component\Camera.cpp" />
     <ClCompile Include="Component\Light.cpp" />
@@ -78,7 +79,6 @@
     <ClCompile Include="Data_Structure\Scene.cpp" />
     <ClCompile Include="Default_Scene.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Network\Room.cpp" />
     <ClCompile Include="Script\BallController.cpp" />
     <ClCompile Include="Script\BlockBehavior.cpp" />
     <ClCompile Include="Script\BousController.cpp" />
@@ -156,7 +156,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>Component;Data_Structure;Script;Utility;Network;$(IncludePath)</IncludePath>
+    <IncludePath>Component;Data_Structure;Script;Utility;..\Network;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

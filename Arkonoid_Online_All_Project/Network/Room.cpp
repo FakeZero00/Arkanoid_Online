@@ -99,6 +99,11 @@ int Room::IndexOf(Session* s) const
     return sessions[0] == s ? 0 : (sessions[1] == s ? 1 : -1);
 }
 
+char* Room::GetRoomName() const
+{
+	return (char*)roomName;
+}
+
 // 동작 -----------------------------------------------------------------------------
 bool Room::Join(Session* guest)
 {

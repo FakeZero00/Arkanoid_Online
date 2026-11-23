@@ -162,25 +162,25 @@
     <ClInclude Include="resource.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Network\Network.h">
+    <ClInclude Include="..\Network\Network.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Network\Session.h">
+    <ClInclude Include="..\Network\PlayerGameState.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Network\Room.h">
+    <ClInclude Include="..\Network\Protocol.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Network\PlayerGameState.h">
+    <ClInclude Include="..\Network\Room.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Network\RoomState.h">
+    <ClInclude Include="..\Network\RoomState.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Network\Protocol.h">
+    <ClInclude Include="..\Network\Session.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
-    <ClInclude Include="AllNetworkLib.h">
+    <ClInclude Include="..\Network\AllNetworkLib.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -257,7 +257,7 @@
     <ClCompile Include="Component\Light.cpp">
       <Filter>Component\Source</Filter>
     </ClCompile>
-    <ClCompile Include="Network\Room.cpp">
+    <ClCompile Include="..\Network\Room.cpp">
       <Filter>Network\Source</Filter>
     </ClCompile>
   </ItemGroup>

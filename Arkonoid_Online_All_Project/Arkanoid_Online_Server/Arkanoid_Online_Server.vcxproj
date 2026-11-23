@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>Network;$(IncludePath)</IncludePath>
+    <IncludePath>..\Network;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -142,17 +142,17 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Network\Room.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Network\Room.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AllNetworkLib.h" />
-    <ClInclude Include="Network\Network.h" />
-    <ClInclude Include="Network\PlayerGameState.h" />
-    <ClInclude Include="Network\Protocol.h" />
-    <ClInclude Include="Network\Room.h" />
-    <ClInclude Include="Network\RoomState.h" />
-    <ClInclude Include="Network\Session.h" />
+    <ClInclude Include="..\Network\AllNetworkLib.h" />
+    <ClInclude Include="..\Network\Network.h" />
+    <ClInclude Include="..\Network\PlayerGameState.h" />
+    <ClInclude Include="..\Network\Protocol.h" />
+    <ClInclude Include="..\Network\Room.h" />
+    <ClInclude Include="..\Network\RoomState.h" />
+    <ClInclude Include="..\Network\Session.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
