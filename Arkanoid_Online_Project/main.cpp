@@ -92,7 +92,11 @@ DWORD WINAPI RunRoomDialogThread(LPVOID lpParam) {
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 
 	// 2. 대화상자 생성
-	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG3), NULL, RoomDlgProc);
+	INT_PTR ret = DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG3), NULL, RoomDlgProc, reinterpret_cast<LPARAM>(lpParam));
+	// 다이얼로그 생성 자체에 실패한 경우 메모리 누수 방지
+	if (ret == -1 && lpParam != nullptr) {
+		delete reinterpret_cast<std::string*>(lpParam);
+	}
 	return 0;
 }
 
@@ -380,8 +384,9 @@ INT_PTR CALLBACK RoomCreateDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 				// 대화상자 닫기
 				EndDialog(hDlg, 0);
 
+				std::string* pPlayerName = new std::string(playerName);
 				// 방 생성 후 방 대기실 다이얼로그 실행
-				HANDLE hThread = CreateThread(NULL, 0, RunRoomDialogThread, NULL, 0, NULL);
+				HANDLE hThread = CreateThread(NULL, 0, RunRoomDialogThread, pPlayerName, 0, NULL);
 				if (hThread) CloseHandle(hThread);
 				return TRUE;
 			}
@@ -402,7 +407,17 @@ INT_PTR CALLBACK RoomDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) {
 	case WM_INITDIALOG:
+	{
+		// lParam에 전달된 플레이어 이름을 대화상자에 표시
+		std::string* pPlayerName = reinterpret_cast<std::string*>(lParam);
+		if (pPlayerName != nullptr) {
+			// playerName이 char 기반이므로 SetDlgItemTextA를 사용하면 유니코드 설정과 무관하게 바로 적용됨
+			SetDlgItemTextA(hDlg, IDC_PLAYER1_NAME, pPlayerName->c_str());
+			delete pPlayerName; // 사용 완료 후 메모리 해제
+		}
+		SetDlgItemText(hDlg, IDOK, L"게임 시작");
 		return TRUE;
+	}	
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 			//나가기 버튼
