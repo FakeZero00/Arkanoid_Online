@@ -350,6 +350,11 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
+		// "새로고침" 버튼 클릭
+		case IDC_BUTTON1:
+			
+			return TRUE;
+
 		// "방 만들기" 버튼 클릭
 		case IDC_BUTTON4:
 			HANDLE hThread = CreateThread(NULL, 0, RunRoomCreateDialogThread, NULL, 0, NULL);

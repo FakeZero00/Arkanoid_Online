@@ -20,7 +20,8 @@ constexpr uint16_t IN_GAME_TCP_END   = 150;
 constexpr int      MAX_PACKET_SIZE   = 512;      // RecvPacket 버퍼 크기
 
 enum LobbyType : uint16_t {
-    CS_LOBBY_INFO = LOBBY_TCP_BEGIN        // 클라이언트 → 서버 : 방 정보 (방 이름, 플레이어 이름)
+    CS_LOBBY_INFO = LOBBY_TCP_BEGIN,        // 클라이언트 → 서버 : 방 정보 (방 이름, 플레이어 이름)
+	CS_REFRESH_REQUEST,                     // 클라이언트 → 서버 : 방 목록 새로고침 요청
 };
 
 enum InGameTcpType : uint16_t {
@@ -62,6 +63,20 @@ struct PacketHeader {
 struct RoomInfoPacket : PacketHeader {
     char roomName[32];			    // 방 이름
     char playerName[32];			// 플레이어 이름
+};
+
+//새로고침 요청 패킷
+struct RefreshRequestPacket : PacketHeader {
+    // 추가적인 정보가 필요할 경우 여기에 필드를 추가할 수 있습니다.
+};
+
+//방 목록 패킷
+struct RoomListPacket : PacketHeader {
+	uint8_t roomCount;             // 방 개수
+	struct RoomInfo {
+		char roomName[32];         // 방 이름
+		char playerName[32];       // 플레이어 이름
+	} rooms[10];                   // 최대 10개의 방 정보
 };
 
 //TCP 패킷
@@ -267,7 +282,7 @@ inline bool ReadTyped(const char* buf, int len, T& out)
 inline bool IsValidEventType(uint8_t e) { return e < EVENT_COUNT; }
 
 //------------------------------------------------------------------
-// 방 정보 송신
+// 방 정보 송신(클라이언트 → 서버)
 inline bool SendRoomInfo(SOCKET sock, const char* roomName, const char* playerName)
 {
     RoomInfoPacket p{};
@@ -281,3 +296,15 @@ inline bool SendRoomInfo(SOCKET sock, const char* roomName, const char* playerNa
 
     return SendTyped(sock, p);
 }
+
+//새로고침 요청
+inline bool SendRefreshRequest(SOCKET sock)
+{
+    RefreshRequestPacket p{};
+    p.size = sizeof(RefreshRequestPacket);
+    p.type = CS_REFRESH_REQUEST;
+
+    return SendTyped(sock, p);
+}
+
+//방 정보 송신
