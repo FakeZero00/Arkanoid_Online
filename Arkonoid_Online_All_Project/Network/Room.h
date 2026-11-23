@@ -23,6 +23,7 @@ inline constexpr const char* EVENT_NAME[EVENT_COUNT] = {
 class Room {
 private:
     char roomName[32] = {};
+    char playerName[2][32] = { {} };
 
 public:
     explicit Room(Session* host);           // 방 개설: sessions[0] = 호스트, Waiting
@@ -42,6 +43,7 @@ public:
     Session*  GetSession(int idx) const;    // idx: 0 = 호스트, 1 = 게스트. 범위 밖이면 nullptr
     uint32_t  GetScore(int idx) const;
     char*     GetRoomName() const;
+	char* GetPlayerName(int idx) const;
 
 private:
     int IndexOf(Session* s) const;          // 잠금을 잡은 상태에서만 호출

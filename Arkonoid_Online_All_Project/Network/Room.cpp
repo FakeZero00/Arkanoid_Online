@@ -104,6 +104,12 @@ char* Room::GetRoomName() const
 	return (char*)roomName;
 }
 
+char* Room::GetPlayerName(int idx) const
+{
+	if (idx < 0 || idx > 1) return nullptr;
+	return (char*)playerName[idx];
+}
+
 // 동작 -----------------------------------------------------------------------------
 bool Room::Join(Session* guest)
 {
@@ -214,4 +220,19 @@ void Room::OnLeave(Session* s)
         opp->Send(MakeGameEnd(RESULT_WIN, REASON_OPP_LEFT, oppScore, leftScore));  // 받는 사람 기준: 내 점수, 상대 점수
         printf("[방] 세션 %d 이탈 → 세션 %d 승리 처리 (점수 %u : %u)\n", s->GetId(), opp->GetId(), oppScore, leftScore);
     }
+}
+
+//방 정보 송신
+bool SendRoomList(SOCKET sock, std::vector<Room*> rooms)
+{
+    RoomListPacket p{};
+    p.size = sizeof(RoomListPacket);
+    p.type = SC_ROOM_LIST;
+    p.roomCount = static_cast<uint8_t>(rooms.size());
+    for (int i = 0; i < p.roomCount; ++i) {
+        strncpy_s(p.roomName[i], rooms[i]->GetRoomName(), sizeof(p.roomName[i]) - 1);
+        p.roomName[i][sizeof(p.roomName[i]) - 1] = '\0';
+    }
+
+    return SendTyped(sock, p);
 }

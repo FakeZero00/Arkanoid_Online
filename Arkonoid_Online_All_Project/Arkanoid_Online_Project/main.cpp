@@ -43,8 +43,33 @@ INT_PTR CALLBACK RoomDlgProc(HWND, UINT, WPARAM, LPARAM);
 ////////////////////////////////////////
 //네트워크 변수
 SOCKET sock;
+HANDLE hRecvThread;
+INT_PTR dlgWindow;
+HWND hdlgWindow;
 
 ///////////////////////////////////////
+
+DWORD WINAPI RunReceiveRoomTCPThread(LPVOID lpParam) {
+	char buf[MAX_PACKET_SIZE];
+	int n;
+
+	while ((n = RecvPacket(sock, buf, sizeof(buf))) > 0) {
+		uint16_t type = PeekType(buf);
+
+		if (type == SC_ROOM_LIST) {
+			RoomListPacket pkt;
+			if (ReadTyped(buf, n, pkt)) {
+				for (int i = 0; i < pkt.roomCount; ++i) {
+					cout << "방 이름: " << pkt.roomName[i] << endl;
+					SendDlgItemMessageA(hdlgWindow, IDC_LIST2, LB_ADDSTRING, 0, (LPARAM)pkt.roomName[i]);
+				}
+				cout << "방 목록을 받았습니다." << endl;
+			}
+		}
+	}
+
+	return 0;
+}
 
 DWORD WINAPI RunDialogThread(LPVOID lpParam) {
 	// 현재 프로그램의 인스턴스 핸들을 가져옵니다.
@@ -72,9 +97,11 @@ DWORD WINAPI RunDialogThread(LPVOID lpParam) {
 	serveraddr.sin_port = htons(SERVERPORT);
 	retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("connect()");
+	cout << "서버에 연결 완료." << endl;
 
 	// 대화상자 생성
-	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
+	hRecvThread = CreateThread(NULL, 0, RunReceiveRoomTCPThread, NULL, 0, NULL);
+	dlgWindow = DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
 	return 0;
 }
 
@@ -347,12 +374,14 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) {
 	case WM_INITDIALOG:
+		hdlgWindow = hDlg; // 대화상자 핸들을 전역 변수에 저장
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		// "새로고침" 버튼 클릭
 		case IDC_BUTTON1:
-			
+			// 새로고침 요청
+			SendRefreshRequest(sock);
 			return TRUE;
 
 		// "방 만들기" 버튼 클릭

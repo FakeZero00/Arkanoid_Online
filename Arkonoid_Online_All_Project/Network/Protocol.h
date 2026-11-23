@@ -11,7 +11,10 @@
 // ----------------------------------------------------------------------------------
 #include <winsock2.h>
 #include <cstdint>
+#include <vector>
 #pragma comment(lib, "ws2_32")
+
+class Room;
 
 constexpr uint16_t LOBBY_TCP_BEGIN = 1;
 constexpr uint16_t LOBBY_TCP_END = 50;
@@ -22,6 +25,7 @@ constexpr int      MAX_PACKET_SIZE   = 512;      // RecvPacket 버퍼 크기
 enum LobbyType : uint16_t {
     CS_LOBBY_INFO = LOBBY_TCP_BEGIN,        // 클라이언트 → 서버 : 방 정보 (방 이름, 플레이어 이름)
 	CS_REFRESH_REQUEST,                     // 클라이언트 → 서버 : 방 목록 새로고침 요청
+	SC_ROOM_LIST                            // 서버 → 클라이언트 : 방 목록 (RoomListPacket)
 };
 
 enum InGameTcpType : uint16_t {
@@ -73,10 +77,7 @@ struct RefreshRequestPacket : PacketHeader {
 //방 목록 패킷
 struct RoomListPacket : PacketHeader {
 	uint8_t roomCount;             // 방 개수
-	struct RoomInfo {
-		char roomName[32];         // 방 이름
-		char playerName[32];       // 플레이어 이름
-	} rooms[10];                   // 최대 10개의 방 정보
+	char roomName[5][32];         // 각 방 이름
 };
 
 //TCP 패킷
@@ -113,6 +114,7 @@ static_assert(sizeof(TimeSyncPacket)  == 6,  "TimeSyncPacket 크기 확인");
 static_assert(sizeof(GameEndPacket)   == 14, "GameEndPacket 크기 확인");
 static_assert(sizeof(GameStartPacket) == 12, "GameStartPacket 크기 확인");
 static_assert(sizeof(RoomInfoPacket) == 68, "RoomInfoPacket 크기 확인");
+static_assert(sizeof(RefreshRequestPacket) == 4, "RefreshRequestPacket 크기 확인");
 
 // 패킷 ---------------------------------------------------------------------------------
 inline GameEventPacket MakeGameEvent(EventType e, uint32_t timeMs, uint32_t score,
@@ -307,4 +309,5 @@ inline bool SendRefreshRequest(SOCKET sock)
     return SendTyped(sock, p);
 }
 
-//방 정보 송신
+//방 정보 송신(코드는 Room.cpp에 있음)
+bool SendRoomList(SOCKET sock, std::vector<Room*> rooms);

@@ -1,12 +1,14 @@
 #include "AllNetworkLib.h"
 #include <iostream>
 #include <map>
+#include <vector>
 
 #define SERVERPORT 9090
 
 std::map<char*, Session*> ip2session;
 std::map<Session*, char*> session2ip;
 std::map<Session*, Room*> session2rooms;
+std::vector<Room* > rooms;
 
 DWORD WINAPI SessionThread(LPVOID arg);
 
@@ -89,8 +91,14 @@ DWORD WINAPI SessionThread(LPVOID arg)
 				strncpy(room->GetRoomName(), pkt.roomName, sizeof(room->GetRoomName()) - 1);
 				room->GetRoomName()[sizeof(room->GetRoomName()) - 1] = '\0';
 				session2rooms[s] = room;
+				rooms.push_back(room);
 			}
 			else printf("[세션 %d] RoomInfoPacket 크기가 다름 (%d바이트) → 무시\n", s->GetId(), n);
+		}
+
+		else if (type == CS_REFRESH_REQUEST) {
+			printf("[세션 %d] 방 목록 새로고침 요청\n", s->GetId());
+			SendRoomList(s->GetSocket(), rooms);
 		}
 		
 		/*Room* room = GetRoom(s);
