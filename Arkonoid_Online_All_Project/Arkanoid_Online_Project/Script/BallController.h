@@ -14,6 +14,11 @@ private:
 	bool isCatched = true;
 	vec3 velocity = vec3(speed, 0.0f, 0.0f);
 
+	string BousName = "pBous";
+	string WallColLName = "pWallCol.L";
+	string WallColRName = "pWallCol.R";
+	string WallColTName = "pWallCol.T";
+
 public:
 	bool canMoveLeft = true;
 	bool canMoveRight = true;

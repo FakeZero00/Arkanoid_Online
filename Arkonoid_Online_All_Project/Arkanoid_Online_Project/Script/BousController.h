@@ -16,6 +16,9 @@ private:
 	bool canMoveLeft = true;
 	bool canMoveRight = true;
 
+	string WallColLName = "pWallCol.L";
+	string WallColRName = "pWallCol.R";
+
 public:
 	void Start() override;
 	void Update(float deltaTime) override;

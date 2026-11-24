@@ -42,10 +42,10 @@ void BallController::OnTriggerEnter(Object* other) {
 	
 
 	//충돌시 절대값으로 반사하는 것은 공과 2개 이상의 오브젝트가 거의 동시에 충돌했을 때 공이 튕기는 방향이 이상하게 나오는 문제를 해결하기 위함
-	if (other->name == "WallCol.L") velocity.x = std::abs(velocity.x); 
-	else if (other->name == "WallCol.R") velocity.x = -std::abs(velocity.x);
-	else if (other->name == "WallCol.T") velocity.y = -std::abs(velocity.y); // 천장 -> 아래(-)로
-	else if (other->name == "Bous") {
+	if (other->name == WallColLName) velocity.x = std::abs(velocity.x); 
+	else if (other->name == WallColRName) velocity.x = -std::abs(velocity.x);
+	else if (other->name == WallColTName) velocity.y = -std::abs(velocity.y); // 천장 -> 아래(-)로
+	else if (other->name == BousName) {
 		if (dir.x >= 0) velocity.x = -std::abs(velocity.x);
 		else velocity.x = std::abs(velocity.x);
 		velocity.y = -velocity.y;
@@ -67,6 +67,11 @@ void BallController::OnTriggerEnter(Object* other) {
 Component* BallController::CreateFromJson(Object* obj, const json& props, const map<string, Object*>& spawnedObjects)
 {
 	BallController* ballController = obj->AddComponent<BallController>();
+
+	if (props.contains("BousName")) ballController->BousName = props["BousName"];
+	if (props.contains("WallColLName")) ballController->WallColLName = props["WallColLName"];
+	if (props.contains("WallColRName")) ballController->WallColRName = props["WallColRName"];
+	if (props.contains("WallColTName")) ballController->WallColTName = props["WallColTName"];
 
 	return ballController;
 }

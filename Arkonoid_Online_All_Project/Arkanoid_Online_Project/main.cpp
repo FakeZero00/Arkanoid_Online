@@ -55,9 +55,11 @@ DWORD WINAPI RunReceiveRoomTCPThread(LPVOID lpParam) {
 
 	while ((n = RecvPacket(sock, buf, sizeof(buf))) > 0) {
 		uint16_t type = PeekType(buf);
-
+		SendDlgItemMessageA(hdlgWindow, IDC_LIST2, LB_RESETCONTENT, 0, 0);
 		if (type == SC_ROOM_LIST) {
 			RoomListPacket pkt;
+
+
 			if (ReadTyped(buf, n, pkt)) {
 				for (int i = 0; i < pkt.roomCount; ++i) {
 					cout << "¹æ ÀÌ¸§: " << pkt.roomName[i] << endl;
