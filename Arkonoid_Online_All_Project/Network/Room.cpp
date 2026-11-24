@@ -304,6 +304,7 @@ void Room::OnLeave(Session* s)
     }
 }
 
+////////////////////패킷용 함수//////////////////////////
 //방 정보 송신
 bool SendRoomList(SOCKET sock, std::vector<Room*> rooms)
 {

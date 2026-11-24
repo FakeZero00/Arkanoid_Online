@@ -8,6 +8,7 @@
 std::map<char*, Session*> ip2session;
 std::map<Session*, char*> session2ip;
 std::map<Session*, Room*> session2rooms;
+std::map<char*, Room*> name2rooms;
 std::vector<Room* > rooms;
 
 DWORD WINAPI SessionThread(LPVOID arg);

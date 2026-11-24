@@ -15,7 +15,7 @@ void BlockGenerator::Start() {
 				Transform* blockTr = block->GetComponent<Transform>();
 				block->AddComponent<MeshRenderer3D>(meshChache["Block"], materialChache[colors[row]]);
 				block->AddComponent<BoxCollider>(vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 1.0f, 1.0f, 1.0f })->isDebug = true;
-				block->AddComponent<BlockBehavior>(colors[row]);
+				block->AddComponent<BlockBehavior>(colors[row], BallName);
 
 				float xPos = -14.14f + (2.828f * (float)i);
 				float yPos = 31.87f - (1.6f * (float)row);
@@ -29,6 +29,7 @@ Component* BlockGenerator::CreateFromJson(Object* obj, const json& props, const 
 	BlockGenerator* blockGenerator = obj->AddComponent<BlockGenerator>();
 	
 	if (props.contains("stage")) blockGenerator->stage = props["stage"].get<int>();
+	if (props.contains("BallName")) blockGenerator->BallName = props["BallName"];
 
 	return blockGenerator;
 }

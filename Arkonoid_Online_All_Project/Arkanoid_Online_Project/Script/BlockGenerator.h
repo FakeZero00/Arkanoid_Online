@@ -6,6 +6,8 @@ class BlockGenerator : public Component {
 private:
 	int stage = 0;
 
+	string BallName = "pBall";
+
 public:
 	void Start() override;
 

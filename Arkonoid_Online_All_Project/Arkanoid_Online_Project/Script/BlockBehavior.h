@@ -10,9 +10,11 @@ private:
 	string color;
 	int hitCount = 0;
 
+	string BallName = "pBall";
+
 public:
 	BlockBehavior() = default;
-	BlockBehavior(string& color) : color(color) {}
+	BlockBehavior(string& color, string& ballName) : color(color), BallName(ballName) {}
 
 	void OnTriggerEnter(Object* other) override;
 

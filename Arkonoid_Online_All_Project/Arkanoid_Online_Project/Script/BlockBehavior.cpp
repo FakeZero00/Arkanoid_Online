@@ -3,7 +3,7 @@
 
 void BlockBehavior::OnTriggerEnter(Object* other)
 {
-	if (other->name == "Ball") {
+	if (other->name == BallName) {
 		hitCount++;
 
 		if (color == "Silver") {
@@ -16,6 +16,8 @@ void BlockBehavior::OnTriggerEnter(Object* other)
 Component* BlockBehavior::CreateFromJson(Object* obj, const json& props, const map<string, Object*>& spawnedObjects)
 {
 	BlockBehavior* blockBehavior = obj->AddComponent<BlockBehavior>();
+
+	if (props.contains("BallName")) blockBehavior->BallName = props["BallName"];
 
 	return blockBehavior;
 }

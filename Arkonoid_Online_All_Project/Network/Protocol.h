@@ -25,7 +25,8 @@ constexpr int      MAX_PACKET_SIZE   = 512;      // RecvPacket 버퍼 크기
 enum LobbyType : uint16_t {
     CS_LOBBY_INFO = LOBBY_TCP_BEGIN,        // 클라이언트 → 서버 : 방 정보 (방 이름, 플레이어 이름)
 	CS_REFRESH_REQUEST,                     // 클라이언트 → 서버 : 방 목록 새로고침 요청
-	SC_ROOM_LIST                            // 서버 → 클라이언트 : 방 목록 (RoomListPacket)
+	SC_ROOM_LIST,                           // 서버 → 클라이언트 : 방 목록 (RoomListPacket)
+	CS_JOIN_REQUEST                         // 클라이언트 → 서버 : 방 참가 요청 (RoomInfoPacket)
 };
 
 enum InGameTcpType : uint16_t {

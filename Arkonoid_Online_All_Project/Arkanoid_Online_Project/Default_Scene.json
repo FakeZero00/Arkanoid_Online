@@ -192,7 +192,8 @@
 		{
           "type": "BlockGenerator",
 		  "properties": {
-			  "stage": 1
+			  "stage": 1,
+			  "BallName": "pBall"
 		  }
         }
       ]
@@ -423,7 +424,8 @@
 		{
           "type": "BlockGenerator",
 		  "properties": {
-			  "stage": 1
+			  "stage": 1,
+			  "BallName": "oBall"
 		  }
         }
       ]
