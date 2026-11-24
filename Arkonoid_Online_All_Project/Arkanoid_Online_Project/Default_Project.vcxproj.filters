@@ -123,6 +123,9 @@
     <ClInclude Include="Utility\SceneLoader.h">
       <Filter>Utility\Header</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\GameNet.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
     <ClInclude Include="Data_Structure\json.hpp">
       <Filter>Data_Structure\Header</Filter>
     </ClInclude>
@@ -231,6 +234,9 @@
       <Filter>Utility\Source</Filter>
     </ClCompile>
     <ClCompile Include="Utility\SceneLoader.cpp">
+      <Filter>Utility\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\GameNet.cpp">
       <Filter>Utility\Source</Filter>
     </ClCompile>
     <ClCompile Include="Component\MeshSpline.cpp">

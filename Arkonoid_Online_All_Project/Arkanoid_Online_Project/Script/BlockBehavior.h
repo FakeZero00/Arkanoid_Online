@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Component.h"
 #include "../AllComponent.h"
 #include <string>
@@ -9,6 +9,8 @@ class BlockBehavior : public Component {
 private:
 	string color;
 	int hitCount = 0;
+	int blockIndex = 0;		// 스테이지 안의 블록 번호 (줄 * 11 + 칸). 상대 화면에서 같은 블록을 찾는 데 사용
+	bool broken = false;	// 같은 프레임에 두 번 깨진 것으로 보내지 않도록
 
 	string BallName = "pBall";
 
