@@ -11,6 +11,7 @@
 #include <queue>
 #include <system_error>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 using Clock = std::chrono::steady_clock;
@@ -18,9 +19,12 @@ constexpr auto SendInterval = std::chrono::milliseconds(33);
 constexpr auto PositionRefreshInterval = std::chrono::milliseconds(250);
 constexpr auto PeerTimeout = std::chrono::seconds(3);
 
+unsigned int Object::objCounter = 0;
+
 namespace {
 std::vector<std::unique_ptr<Object>> objects;
 Object remoteObjects[ObjectCount];
+std::unordered_map<unsigned int, Object*> remoteObjectsById;
 std::queue<PositionPacket> pendingPositions;
 std::mutex queueMutex;
 std::mutex positionMutex;
@@ -91,14 +95,11 @@ void stopClient(ClientState& state) {
 
 int receiveRemotePositions(SOCKET sock, ClientState& state) {
     Clock::time_point lastReceived{};
-    std::array<std::uint32_t, ObjectCount> lastSequence{};
-    std::array<bool, ObjectCount> received{};
 
     while (state.running) {
         const auto now = Clock::now();
         if (lastReceived != Clock::time_point{} && now - lastReceived >= PeerTimeout) {
             lastReceived = {};
-            received.fill(false);
             std::lock_guard<std::mutex> lock(positionMutex);
             state.hasRemotePosition = false;
             state.displayDirty = true;
@@ -122,15 +123,18 @@ int receiveRemotePositions(SOCKET sock, ClientState& state) {
 
         std::lock_guard<std::mutex> lock(positionMutex);
         const auto id = position.objectId;
-        if (received[id] && !isNewerSequence(position.sequence, lastSequence[id])) continue;
+        const auto found = remoteObjectsById.find(id);
+        if (found == remoteObjectsById.end()) continue;
 
-        const bool changed = !received[id] || position.x != remoteObjects[id].position.x ||
-            position.y != remoteObjects[id].position.y;
-        remoteObjects[id].position.x = position.x;
-        remoteObjects[id].position.y = position.y;
+        Object* object = found->second;
+        if (position.sequence < object->sequence) continue;
+
+        const bool changed = !state.hasRemotePosition || position.x != object->position.x ||
+            position.y != object->position.y;
+        object->position.x = position.x;
+        object->position.y = position.y;
+        object->sequence = position.sequence;
         state.hasRemotePosition = true;
-        received[id] = true;
-        lastSequence[id] = position.sequence;
         lastReceived = now;
         if (changed) {
             state.displayDirty = true;
@@ -281,6 +285,11 @@ int runClient(SOCKET sock, HANDLE input, bool observe) {
     };
     for (std::uint32_t i = 1; i < ObjectCount; ++i) {
         objects.push_back(std::make_unique<Ball>(directions[i - 1]));
+    }
+
+    remoteObjectsById.reserve(ObjectCount);
+    for (auto& object : remoteObjects) {
+        remoteObjectsById.emplace(object.id, &object);
     }
 
     ClientState state;

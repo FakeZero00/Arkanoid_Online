@@ -1,10 +1,18 @@
-#pragma once
+﻿#pragma once
 
 #include "Vec2D.h"
+#include <cstdint>
 
 class Object {
 public:
+    static unsigned int objCounter; // 오브젝트 고유 ID를 위한 카운터
+    unsigned int id;
+    std::uint32_t sequence = 0;
     Vec2D position;
+
+    Object() {
+        id = objCounter++;
+    }
 
     virtual ~Object() = default;
     virtual void Update(float) {}
