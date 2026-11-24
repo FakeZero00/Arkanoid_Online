@@ -15,7 +15,10 @@
           "properties": {
             "fov": 60.0,
             "nearPlane": 0.1,
-            "farPlane": 1000.0
+            "farPlane": 1000.0,
+			"isOrthographic": true,
+			"width": 10176,
+			"height": 5724
           }
         },
         {
@@ -52,17 +55,17 @@
       ]
     },
 	{
-      "name": "Stage_Root",
+      "name": "Player_Root",
       "parent": "",
       "transform": {
-        "position": [ 0.0, 0.0, 0.0 ],
+        "position": [ -25.0, 0.0, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
         "scale": [ 1.0, 1.0, 1.0 ]
       }
     },
 	{
-      "name": "Wall",
-      "parent": "Stage_Root",
+      "name": "pWall",
+      "parent": "Player_Root",
       "transform": {
         "position": [ 0.0, 0.0, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -81,8 +84,8 @@
       ]
     },
 	{
-      "name": "WallCol.L",
-      "parent": "Wall",
+      "name": "pWallCol.L",
+      "parent": "pWall",
       "transform": {
         "position": [ -16.83, 19.55, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -100,8 +103,8 @@
       ]
     },
 	{
-      "name": "WallCol.R",
-      "parent": "Wall",
+      "name": "pWallCol.R",
+      "parent": "pWall",
       "transform": {
         "position": [ 16.83, 19.55, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -119,8 +122,8 @@
       ]
     },
 	{
-      "name": "WallCol.T",
-      "parent": "Wall",
+      "name": "pWallCol.T",
+      "parent": "pWall",
       "transform": {
         "position": [ 0.0, 39.55, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -138,8 +141,8 @@
       ]
     },
 	{
-      "name": "AI_Door.L",
-      "parent": "Wall",
+      "name": "pAI_Door.L",
+      "parent": "pWall",
       "transform": {
         "position": [ 4.7, 39.549, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -158,8 +161,8 @@
       ]
     },
 	{
-      "name": "AI_Door.R",
-      "parent": "Wall",
+      "name": "pAI_Door.R",
+      "parent": "pWall",
       "transform": {
         "position": [ -4.7, 39.549, 0.0 ],
         "rotation": [ 0.0, 0.0, 180.0 ],
@@ -178,8 +181,8 @@
       ]
     },
 	{
-      "name": "Block_Generator",
-      "parent": "Stage_Root",
+      "name": "pBlock_Generator",
+      "parent": "Player_Root",
       "transform": {
         "position": [ 0.0, 0.0, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -195,8 +198,8 @@
       ]
     },
 	{
-      "name": "Bous",
-      "parent": "Stage_Root",
+      "name": "pBous",
+      "parent": "Player_Root",
       "transform": {
         "position": [ 0.0, 0.0, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -231,14 +234,16 @@
 		{
           "type": "BousController",
 		  "properties": {
-			  "ball": "Ball"
+			  "ball": "pBall",
+			  "WallColLName": "pWallCol.L",
+			  "WallColRName": "pWallCol.R"
 		  }
         }
       ]
     },
 	{
-      "name": "Ball",
-      "parent": "Stage_Root",
+      "name": "pBall",
+      "parent": "Player_Root",
       "transform": {
         "position": [ 0.0, 1.7, 0.0 ],
         "rotation": [ 0.0, 0.0, 0.0 ],
@@ -270,7 +275,244 @@
 		  }
         },
 		{
-          "type": "BallController"
+          "type": "BallController",
+		  "properties": {
+			  "BousName": "pBous",
+			  "WallColLName": "pWallCol.L",
+			  "WallColRName": "pWallCol.R",
+			  "WallColTName": "pWallCol.T"
+		  }
+        }
+      ]
+    },
+	{
+      "name": "Opponent_Root",
+      "parent": "",
+      "transform": {
+        "position": [ 25.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      }
+    },
+	{
+      "name": "oWall",
+      "parent": "Opponent_Root",
+      "transform": {
+        "position": [ 0.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Wall",
+            "materials":[
+				"Gray"
+			]
+          }
+        }
+      ]
+    },
+	{
+      "name": "oWallCol.L",
+      "parent": "oWall",
+      "transform": {
+        "position": [ -16.83, 19.55, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 2.0, 40.0, 2.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
+      "name": "oWallCol.R",
+      "parent": "oWall",
+      "transform": {
+        "position": [ 16.83, 19.55, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 2.0, 40.0, 2.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
+      "name": "oWallCol.T",
+      "parent": "oWall",
+      "transform": {
+        "position": [ 0.0, 39.55, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 31.0, 2.0, 2.0 ],
+			  "isDebug": true
+		  }
+        }
+      ]
+    },
+	{
+      "name": "oAI_Door.L",
+      "parent": "oWall",
+      "transform": {
+        "position": [ 4.7, 39.549, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "AI_Door",
+            "materials":[
+				"Gray"
+			]
+          }
+        }
+      ]
+    },
+	{
+      "name": "oAI_Door.R",
+      "parent": "oWall",
+      "transform": {
+        "position": [ -4.7, 39.549, 0.0 ],
+        "rotation": [ 0.0, 0.0, 180.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "AI_Door",
+            "materials":[
+				"Gray"
+			]
+          }
+        }
+      ]
+    },
+	{
+      "name": "oBlock_Generator",
+      "parent": "Opponent_Root",
+      "transform": {
+        "position": [ 0.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+		{
+          "type": "BlockGenerator",
+		  "properties": {
+			  "stage": 1
+		  }
+        }
+      ]
+    },
+	{
+      "name": "oBous",
+      "parent": "Opponent_Root",
+      "transform": {
+        "position": [ 0.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+		{
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Bous",
+            "materials":[
+				"Gray"
+			]
+          }
+        },
+		{
+          "type": "BoxCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "size": [ 1.0, 1.0, 1.0 ],
+			  "isDebug": true
+		  }
+        },
+		{
+          "type": "RigidBody",
+		  "properties": {
+			  "mass": 1.0,
+			  "useGravity": false,
+			  "isKinematic": true
+		  }
+        },
+		{
+          "type": "BousController",
+		  "properties": {
+			  "ball": "oBall",
+			  "WallColLName": "oWallCol.L",
+			  "WallColRName": "oWallCol.R"
+		  }
+        }
+      ]
+    },
+	{
+      "name": "oBall",
+      "parent": "Opponent_Root",
+      "transform": {
+        "position": [ 0.0, 1.7, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+		{
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "Ball",
+            "materials":[
+				"Magenta"
+			]
+          }
+        },
+		{
+          "type": "SphereCollider",
+		  "properties": {
+			  "center": [ 0.0, 0.0, 0.0 ],
+			  "radius": 0.9,
+			  "isDebug": true
+		  }
+        },
+		{
+          "type": "RigidBody",
+		  "properties": {
+			  "useGravity": false,
+			  "isKinematic": true
+		  }
+        },
+		{
+          "type": "BallController",
+		  "properties": {
+			  "BousName": "oBous",
+			  "WallColLName": "oWallCol.L",
+			  "WallColRName": "oWallCol.R",
+			  "WallColTName": "oWallCol.T"
+		  }
         }
       ]
     }

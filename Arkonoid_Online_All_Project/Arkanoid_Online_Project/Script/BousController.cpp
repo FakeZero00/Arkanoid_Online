@@ -21,11 +21,11 @@ void BousController::Update(float deltaTime)
 
 void BousController::OnTriggerEnter(Object* other)
 {
-	if (other->name == "WallCol.L") {
+	if (other->name == WallColLName) {
 		canMoveLeft = false;
 		ballController->canMoveLeft = false;
 	}
-	else if (other->name == "WallCol.R") {
+	else if (other->name == WallColRName) {
 		canMoveRight = false;
 		ballController->canMoveRight = false;
 	}
@@ -33,11 +33,11 @@ void BousController::OnTriggerEnter(Object* other)
 
 void BousController::OnTriggerExit(Object* other)
 {
-	if (other->name == "WallCol.L") {
+	if (other->name == WallColLName) {
 		canMoveLeft = true;
 		ballController->canMoveLeft = true;
 	}
-	else if (other->name == "WallCol.R") {
+	else if (other->name == WallColRName) {
 		canMoveRight = true;
 		ballController->canMoveRight = true;
 	}
@@ -48,6 +48,8 @@ Component* BousController::CreateFromJson(Object* obj, const json& props, const 
 	BousController* bousController = obj->AddComponent<BousController>();
 
 	if (props.contains("ball")) bousController->ball = spawnedObjects.at(props["ball"]);
+	if (props.contains("WallColLName")) bousController->WallColLName = props["WallColLName"];
+	if (props.contains("WallColRName")) bousController->WallColRName = props["WallColRName"];
 
 	return bousController;
 }
