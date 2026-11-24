@@ -1,4 +1,4 @@
-#include "BlockGenerator.h"
+﻿#include "BlockGenerator.h"
 #include "Object.h"
 
 #include "BlockBehavior.h"
@@ -15,7 +15,7 @@ void BlockGenerator::Start() {
 				Transform* blockTr = block->GetComponent<Transform>();
 				block->AddComponent<MeshRenderer3D>(meshChache["Block"], materialChache[colors[row]]);
 				block->AddComponent<BoxCollider>(vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 1.0f, 1.0f, 1.0f })->isDebug = true;
-				block->AddComponent<BlockBehavior>(colors[row]);
+				block->AddComponent<BlockBehavior>(colors[row], row * 11 + i);	// 블록 번호 = 줄 * 11 + 칸
 
 				float xPos = -14.14f + (2.828f * (float)i);
 				float yPos = 31.87f - (1.6f * (float)row);

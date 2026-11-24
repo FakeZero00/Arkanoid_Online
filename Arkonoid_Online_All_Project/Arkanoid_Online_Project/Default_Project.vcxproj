@@ -57,6 +57,7 @@
     <ClInclude Include="Script\SceneCamera.h" />
     <ClInclude Include="Script\BlockGenerator.h" />
     <ClInclude Include="Utility\ColliderManager.h" />
+    <ClInclude Include="Utility\GameNet.h" />
     <ClInclude Include="Utility\InputManager.h" />
     <ClInclude Include="Utility\ObjImporter.h" />
     <ClInclude Include="Utility\SceneLoader.h" />
@@ -85,6 +86,7 @@
     <ClCompile Include="Script\SceneCamera.cpp" />
     <ClCompile Include="Script\BlockGenerator.cpp" />
     <ClCompile Include="Utility\ColliderManager.cpp" />
+    <ClCompile Include="Utility\GameNet.cpp" />
     <ClCompile Include="Utility\ObjImporter.cpp" />
     <ClCompile Include="Utility\SceneLoader.cpp" />
     <ClCompile Include="Utility\ShaderManager.cpp" />
