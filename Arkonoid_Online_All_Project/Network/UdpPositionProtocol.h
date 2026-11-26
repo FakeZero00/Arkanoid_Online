@@ -9,7 +9,7 @@
 namespace udp {
 
 constexpr unsigned short RelayPort = 9800;
-constexpr std::uint32_t PositionType = 50;
+constexpr auto UdpOnlyPos = std::uint32_t{50};
 
 struct Position {
     std::uint32_t sequence;
@@ -26,20 +26,19 @@ struct PositionPacket {
     std::uint32_t yBits;
 };
 
-static_assert(sizeof(PositionPacket) == 20);
+static_assert(sizeof(PositionPacket) == 20, "Unexpected UDP position packet size");
 static_assert(sizeof(float) == sizeof(std::uint32_t) &&
-    std::numeric_limits<float>::is_iec559);
+    std::numeric_limits<float>::is_iec559, "UDP positions require IEEE 754 binary32");
 
 inline PositionPacket encodePosition(const Position& position) {
     std::uint32_t xBits, yBits;
     std::memcpy(&xBits, &position.x, sizeof(xBits));
     std::memcpy(&yBits, &position.y, sizeof(yBits));
-    return { htonl(PositionType), htonl(position.sequence), htonl(position.objectId),
-        htonl(xBits), htonl(yBits) };
+    return {htonl(UdpOnlyPos), htonl(position.sequence), htonl(position.objectId), htonl(xBits), htonl(yBits)};
 }
 
 inline bool decodePosition(const PositionPacket& packet, Position& position) {
-    if (ntohl(packet.type) != PositionType) return false;
+    if (ntohl(packet.type) != UdpOnlyPos) return false;
     const std::uint32_t xBits = ntohl(packet.xBits);
     const std::uint32_t yBits = ntohl(packet.yBits);
     position.sequence = ntohl(packet.sequence);

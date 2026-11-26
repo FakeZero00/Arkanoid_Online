@@ -2,7 +2,7 @@
 #include "Common.h"
 #include "resource.h"
 #include "Utility/UdpClient.h"
-#include <thread>
+#include <chrono>
 #include <tchar.h>
 #include <locale>
 #include <cstring>
@@ -275,13 +275,10 @@ int main(int argc, char** argv) {
 	Default_Scene defaultScene{screenSize};
 	defaultScene.LoadScene(ctx);
 
-	UdpClient udpClient;
 	Object* pBous = nullptr;
 	Object* pBall = nullptr;
 	Object* oBous = nullptr;
 	Object* oBall = nullptr;
-	std::uint32_t lastBousSequence = 0;
-	std::uint32_t lastBallSequence = 0;
 	auto nextUdpSend = std::chrono::steady_clock::now();
 	if (skipLobby) {
 		pBous = defaultScene.FindObject(ctx, "pBous");
@@ -290,10 +287,16 @@ int main(int argc, char** argv) {
 		oBall = defaultScene.FindObject(ctx, "oBall");
 
 		const bool hasUdpObjects = pBous && pBall && oBous && oBall;
-		if (!hasUdpObjects) {
+		bool udpStarted = false;
+		if (hasUdpObjects) {
+			const auto& initialBous = pBous->GetComponent<Transform>()->position;
+			udpStarted = StartUdpClient(argc > 2 ? argv[2] : SERVERIP,
+				{ 0, pBous->id, initialBous.x, initialBous.y }, pBall->id,
+				oBous->GetComponent<Transform>(), oBall->GetComponent<Transform>());
+		} else {
 			cerr << "UDP test requires pBous, pBall, oBous, and oBall." << endl;
 		}
-		if (!hasUdpObjects || !udpClient.Start(argc > 2 ? argv[2] : SERVERIP)) {
+		if (!udpStarted) {
 			glfwDestroyWindow(window);
 			glfwTerminate();
 			return 1;
@@ -339,29 +342,9 @@ int main(int argc, char** argv) {
 			if (now >= nextUdpSend) {
 				const auto& bousPosition = pBous->GetComponent<Transform>()->position;
 				const auto& ballPosition = pBall->GetComponent<Transform>()->position;
-				udpClient.QueuePosition(pBous->id, bousPosition.x, bousPosition.y);
-				udpClient.QueuePosition(pBall->id, ballPosition.x, ballPosition.y);
-				nextUdpSend = now + UdpClient::SendInterval;
-			}
-
-			udp::Position position{};
-			while (udpClient.TryReceive(position)) {
-				Object* remote;
-				if (position.objectId == pBous->id) {
-					remote = oBous;
-				}
-				else if (position.objectId == pBall->id) {
-					remote = oBall;
-				}
-				else {
-					continue;
-				}
-
-				auto& lastSequence = remote == oBous ? lastBousSequence : lastBallSequence;
-				if (position.sequence < lastSequence) continue;
-				Transform* transform = remote->GetComponent<Transform>();
-				transform->SetLocalPosition(position.x, position.y, transform->position.z);
-				lastSequence = position.sequence;
+				QueueUdpPosition(pBous->id, bousPosition.x, bousPosition.y);
+				QueueUdpPosition(pBall->id, ballPosition.x, ballPosition.y);
+				nextUdpSend = now + UdpSendInterval;
 			}
 		}
 
@@ -425,11 +408,15 @@ int main(int argc, char** argv) {
 		}
 
 		//화면 렌더링
-		DrawScene(window);
+		{
+			std::lock_guard<std::mutex> lock(positionMutex);
+			DrawScene(window);
+		}
 	}
 
 	/////////////////////////루프 종료/////////////////////////
 	//리소스 해제
+	if (skipLobby) StopUdpClient();
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	return 0;

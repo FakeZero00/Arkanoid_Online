@@ -45,9 +45,7 @@ int main() {
 	if (retval == SOCKET_ERROR) err_quit("listen()");
 
 	//데이터 통신에 사용할 변수
-	UdpRelay udpRelay;
-	if (!udpRelay.Start()) {
-		udpRelay.Stop();
+	if (!StartUdpRelay()) {
 		closesocket(listen_sock);
 		WSACleanup();
 		return 1;
@@ -81,7 +79,7 @@ int main() {
 		if (h) CloseHandle(h);
 	}
 
-	udpRelay.Stop();
+	StopUdpRelay();
 	closesocket(listen_sock);
 	WSACleanup();
 	return 0;
