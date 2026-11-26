@@ -544,24 +544,6 @@ void DrawScene(GLFWwindow* window)
 		return a->priority < b->priority;
 		});
 
-	//렌더링 큐 생성
-	vector<Object*> renderQueue;
-	renderQueue.reserve(ctx->Hierarchy.size());
-	for (auto& obj : ctx->Hierarchy) {
-		renderQueue.push_back(obj.get());
-	}
-
-	//렌더링 큐 정렬 (Z값 기준. Z값이 클 수록 나중에 렌더링)
-	stable_sort(renderQueue.begin(), renderQueue.end(),
-		[](Object* a, Object* b) {
-			Transform* trA = a->GetComponent<Transform>();
-			Transform* trB = b->GetComponent<Transform>();
-			if (trA && trB) {
-				return trA->worldPosition.z < trB->worldPosition.z;
-			}
-			return false;
-		});
-
 	//각 카메라 시점별 렌더링
 	for (Camera* cam : activeCameras) {
 		int vpX = static_cast<GLint>(cam->viewportRect.x * screenSize.width);
@@ -591,7 +573,7 @@ void DrawScene(GLFWwindow* window)
 		glDisable(GL_SCISSOR_TEST);
 
 		// 현재 그리려는 카메라 객체를 전달하여 렌더링
-		for (auto& obj : renderQueue) {
+		for (auto& obj : ctx->Hierarchy) {
 			if (obj->isValid) obj->Render(cam);
 		}
 	}
