@@ -17,15 +17,30 @@ MeshRenderer3D::MeshRenderer3D(Mesh* mesh, Material* material) : mesh(mesh) {
 	this->materials.push_back(material);
 }
 
-void MeshRenderer3D::Render(Camera* activeCamera) {
-	for (auto& material : materials) {
-		//셰이더 사용
-		material->Use();
-		//VAO 바인딩
-		mesh->Bind();
+MeshRenderer3D::MeshRenderer3D(Mesh* mesh, const vector<Material*>& materials)
+	: mesh(mesh), materials(materials) {}
 
-		//Transform의 worldMatrix를 셰이더에 전달
-		Transform* transform = gameObject->GetComponent<Transform>();
+void MeshRenderer3D::Render(Camera* activeCamera) {
+	if (mesh == nullptr || materials.empty()) return;
+
+	Transform* transform = gameObject->GetComponent<Transform>();
+	const auto& lights = gameObject->ctx.lights;
+	int numLights = std::min(static_cast<int>(lights.size()), 10);
+
+	// 서브메쉬 0번부터 차례대로 순회하며 i번 마테리얼 적용
+	for (size_t i = 0; i < mesh->subMeshes.size(); ++i) {
+		const SubMesh& subMesh = mesh->subMeshes[i];
+		if (subMesh.indexCount <= 0) continue;
+
+		// i번 마테리얼 선택 (JSON에 등록된 마테리얼 수가 부족하면 마지막 마테리얼 사용)
+		Material* material = (i < materials.size()) ? materials[i] : materials.back();
+		if (material == nullptr) continue;
+
+		// 셰이더 및 VAO, 해당 서브메쉬의 EBO 바인딩
+		material->Use();
+		mesh->Bind();
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subMesh.EBO);
+
 		GLuint modelLoc = glGetUniformLocation(material->shaderProgram, "model");
 		GLuint colorLoc = glGetUniformLocation(material->shaderProgram, "tColor");
 
@@ -37,66 +52,66 @@ void MeshRenderer3D::Render(Camera* activeCamera) {
 			GLuint projLoc = glGetUniformLocation(material->shaderProgram, "proj");
 			glUniformMatrix4fv(projLoc, 1, GL_FALSE, value_ptr(activeCamera->GetProjectionMatrix()));
 
-			//Phong 모델을 위한 카메라의 월드 위치(viewPos) 전달
 			Transform* camTr = activeCamera->gameObject->GetComponent<Transform>();
 			GLuint viewPosLoc = glGetUniformLocation(material->shaderProgram, "viewPos");
 			glUniform3fv(viewPosLoc, 1, value_ptr(camTr->worldPosition));
 		}
 
-		//씬(Hierarchy)에서 Light 컴포넌트 탐색 및 조명 정보 전달
-		Light* sceneLight = nullptr;
-		Transform* lightTr = nullptr;
-		for (const auto& obj : gameObject->ctx.Hierarchy) {
-			if (!obj->isValid) continue;
-			sceneLight = obj->GetComponent<Light>();
-			if (sceneLight != nullptr) {
-				lightTr = obj->GetComponent<Transform>();
-				break; // 첫 번째 조명을 찾으면 루프 종료
+		// 1. 씬에 등록된 라이트 개수 전달
+		glUniform1i(glGetUniformLocation(material->shaderProgram, "numLights"), numLights);
+
+		// 2. 광원 정보 전달
+		for (int l = 0; l < numLights; ++l) {
+			Light* sceneLight = lights[l];
+			Transform* lightTr = sceneLight->gameObject->GetComponent<Transform>();
+			if (lightTr == nullptr) continue;
+
+			string baseName = "lights[" + to_string(l) + "].";
+
+			int typeInt = static_cast<int>(sceneLight->lightType);
+			vec3 finalLightColor = vec3(sceneLight->lightColor) * sceneLight->intensity;
+			vec3 lightDir = normalize(vec3(lightTr->worldMatrix * vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+
+			glUniform1i(glGetUniformLocation(material->shaderProgram, (baseName + "type").c_str()), typeInt);
+			glUniform3fv(glGetUniformLocation(material->shaderProgram, (baseName + "color").c_str()), 1, value_ptr(finalLightColor));
+			glUniform3fv(glGetUniformLocation(material->shaderProgram, (baseName + "direction").c_str()), 1, value_ptr(lightDir));
+
+			if (sceneLight->lightType == LightType::Spot || sceneLight->lightType == LightType::Point) {
+				vec3 lightPos = vec3(lightTr->worldMatrix[3]);
+				glUniform3fv(glGetUniformLocation(material->shaderProgram, (baseName + "position").c_str()), 1, value_ptr(lightPos));
+				glUniform1f(glGetUniformLocation(material->shaderProgram, (baseName + "radius").c_str()), sceneLight->radius);
+
+				if (sceneLight->lightType == LightType::Spot) {
+					glUniform1f(glGetUniformLocation(material->shaderProgram, (baseName + "cutOff").c_str()), glm::cos(glm::radians(sceneLight->cutOff)));
+					glUniform1f(glGetUniformLocation(material->shaderProgram, (baseName + "outerCutOff").c_str()), glm::cos(glm::radians(sceneLight->outerCutOff)));
+				}
 			}
 		}
 
-		// Uniform 위치 가져오기 및 값 전달 로직
-		GLuint lightDirLoc = glGetUniformLocation(material->shaderProgram, "lightDir");
-		GLuint lightColorLoc = glGetUniformLocation(material->shaderProgram, "lightColor");
-
-		if (sceneLight != nullptr && lightTr != nullptr) {
-			// 💡 Unity 스타일 Directional Light: position 무시, rotation만 반영
-			// 라이트 오브젝트의 로컬 전방 벡터(0, 0, -1)에 월드 회전 행렬을 곱하여 방향 추출 (w=0으로 평행이동 차단)
-			vec3 lightDir = normalize(vec3(lightTr->worldMatrix * vec4(0.0f, 0.0f, -1.0f, 0.0f)));
-			vec3 finalLightColor = vec3(sceneLight->lightColor) * sceneLight->intensity;
-
-			glUniform3fv(lightDirLoc, 1, value_ptr(lightDir));
-			glUniform3fv(lightColorLoc, 1, value_ptr(finalLightColor));
-		}
-		else {
-			glUniform3f(lightDirLoc, 0.0f, 0.0f, -1.0f);
-			glUniform3f(lightColorLoc, 1.0f, 1.0f, 1.0f);
-		}
-
-		//Pass1 : 외곽선 렌더링 처리
+		// Pass1 : 외곽선 렌더링 처리
 		if (material->isOutline) {
 			mat4 outlineMatrix = transform->worldMatrix;
-			outlineMatrix = glm::scale(outlineMatrix, vec3{ 1.5f }); //외곽선 확대
+			outlineMatrix = glm::scale(outlineMatrix, vec3{ 1.5f });
 			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, value_ptr(outlineMatrix));
-			glUniform4f(colorLoc, 0.0f, 0.0f, 0.0f, 1.0f); //외곽선 색상 검정
-			glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_BYTE, 0);
+			glUniform4f(colorLoc, 0.0f, 0.0f, 0.0f, 1.0f);
+			glDrawElements(GL_TRIANGLES, subMesh.indexCount, GL_UNSIGNED_INT, 0);
 
-			//원래 색상 전달
 			vec4 originalColor = material->GetVec4("tColor");
 			glUniform4f(colorLoc, originalColor.r, originalColor.g, originalColor.b, originalColor.a);
 		}
 
-		//Pass2 : Mesh 데이터 그리기
+		// Pass2 : 서브메쉬 데이터 그리기
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, value_ptr(transform->worldMatrix));
 		if (isValid) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+			glDrawElements(GL_TRIANGLES, subMesh.indexCount, GL_UNSIGNED_INT, 0);
 		}
 		if (isWireframe) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+			glDrawElements(GL_TRIANGLES, subMesh.indexCount, GL_UNSIGNED_INT, 0);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
+
 		glBindVertexArray(0);
 	}
 }
@@ -107,41 +122,56 @@ Component* MeshRenderer3D::CreateFromJson(Object* obj, const json& props, const 
 		return nullptr;
 	}
 
-	auto matData = props["materials"][0];
-	Material* material = materialChache[matData];
+	vector<Material*> loadedMaterials;
 
-	if (matData.contains("boolUniforms")) {
-		for (auto& [key, val] : matData["boolUniforms"].items()) {
-			material->SetBool(key, val);
+	// materials 배열의 0번 요소부터 순서대로 로드
+	for (const auto& matData : props["materials"]) {
+		string matKey = matData.is_string() ? matData.get<string>() : matData.value("name", "");
+		if (matKey.empty() || materialChache.find(matKey) == materialChache.end()) {
+			cout << obj->name << " 오브젝트의 Material을 찾을 수 없습니다: " << matKey << endl;
+			continue;
 		}
-	}
-	if (matData.contains("intUniforms")) {
-		for (auto& [key, val] : matData["intUniforms"].items()) {
-			material->SetInt(key, val);
+
+		Material* material = materialChache[matKey];
+
+		// matData가 객체 형태로 유니폼 오버라이드를 포함한 경우 처리
+		if (matData.is_object()) {
+			if (matData.contains("boolUniforms")) {
+				for (auto& [key, val] : matData["boolUniforms"].items()) {
+					material->SetBool(key, val);
+				}
+			}
+			if (matData.contains("intUniforms")) {
+				for (auto& [key, val] : matData["intUniforms"].items()) {
+					material->SetInt(key, val);
+				}
+			}
+			if (matData.contains("floatUniforms")) {
+				for (auto& [key, val] : matData["floatUniforms"].items()) {
+					material->SetFloat(key, val);
+				}
+			}
+			if (matData.contains("vec2Uniforms")) {
+				for (auto& [key, val] : matData["vec2Uniforms"].items()) {
+					material->SetVec2(key, vec2(val[0], val[1]));
+				}
+			}
+			if (matData.contains("vec3Uniforms")) {
+				for (auto& [key, val] : matData["vec3Uniforms"].items()) {
+					material->SetVec3(key, vec3(val[0], val[1], val[2]));
+				}
+			}
+			if (matData.contains("vec4Uniforms")) {
+				for (auto& [key, val] : matData["vec4Uniforms"].items()) {
+					material->SetVec4(key, vec4(val[0], val[1], val[2], val[3]));
+				}
+			}
 		}
-	}
-	if (matData.contains("floatUniforms")) {
-		for (auto& [key, val] : matData["floatUniforms"].items()) {
-			material->SetFloat(key, val);
-		}
-	}
-	if (matData.contains("vec2Uniforms")) {
-		for (auto& [key, val] : matData["vec2Uniforms"].items()) {
-			material->SetVec2(key, vec2(val[0], val[1]));
-		}
-	}
-	if (matData.contains("vec3Uniforms")) {
-		for (auto& [key, val] : matData["vec3Uniforms"].items()) {
-			material->SetVec3(key, vec3(val[0], val[1], val[2]));
-		}
-	}
-	if (matData.contains("vec4Uniforms")) {
-		for (auto& [key, val] : matData["vec4Uniforms"].items()) {
-			material->SetVec4(key, vec4(val[0], val[1], val[2], val[3]));
-		}
+
+		loadedMaterials.push_back(material);
 	}
 
-	MeshRenderer3D* meshRenderer = obj->AddComponent<MeshRenderer3D>(meshChache[props["mesh"]], material);
+	MeshRenderer3D* meshRenderer = obj->AddComponent<MeshRenderer3D>(meshChache[props["mesh"]], loadedMaterials);
 
 	if (props.contains("isWireframe")) meshRenderer->isWireframe = props["isWireframe"];
 

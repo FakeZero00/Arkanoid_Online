@@ -2,6 +2,7 @@
   "SceneName": "Default_Scene",
   "Objects": [
     {
+	  "isValid": true,
       "name": "MainCamera",
       "parent": "",
       "transform": {
@@ -27,6 +28,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "Directional Light",
       "parent": "",
       "transform": {
@@ -55,6 +57,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "Player_Root",
       "parent": "",
       "transform": {
@@ -64,6 +67,7 @@
       }
     },
 	{
+	  "isValid": true,
       "name": "pWall",
       "parent": "Player_Root",
       "transform": {
@@ -84,6 +88,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pWallCol.L",
       "parent": "pWall",
       "transform": {
@@ -103,6 +108,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pWallCol.R",
       "parent": "pWall",
       "transform": {
@@ -122,6 +128,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pWallCol.T",
       "parent": "pWall",
       "transform": {
@@ -141,6 +148,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pAI_Door.L",
       "parent": "pWall",
       "transform": {
@@ -161,6 +169,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pAI_Door.R",
       "parent": "pWall",
       "transform": {
@@ -181,6 +190,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pBlock_Generator",
       "parent": "Player_Root",
       "transform": {
@@ -200,6 +210,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pBous",
       "parent": "Player_Root",
       "transform": {
@@ -244,6 +255,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "pBall",
       "parent": "Player_Root",
       "transform": {
@@ -288,6 +300,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "Opponent_Root",
       "parent": "",
       "transform": {
@@ -297,6 +310,7 @@
       }
     },
 	{
+	  "isValid": true,
       "name": "oWall",
       "parent": "Opponent_Root",
       "transform": {
@@ -317,6 +331,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oWallCol.L",
       "parent": "oWall",
       "transform": {
@@ -336,6 +351,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oWallCol.R",
       "parent": "oWall",
       "transform": {
@@ -355,6 +371,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oWallCol.T",
       "parent": "oWall",
       "transform": {
@@ -374,6 +391,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oAI_Door.L",
       "parent": "oWall",
       "transform": {
@@ -394,6 +412,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oAI_Door.R",
       "parent": "oWall",
       "transform": {
@@ -414,6 +433,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oBlock_Generator",
       "parent": "Opponent_Root",
       "transform": {
@@ -433,6 +453,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oBous",
       "parent": "Opponent_Root",
       "transform": {
@@ -477,6 +498,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "oBall",
       "parent": "Opponent_Root",
       "transform": {

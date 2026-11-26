@@ -1,5 +1,4 @@
 #include "Mesh.h"
-#include "ObjImporter.h"
 #include <cfloat>
 #include <iostream>
 
@@ -8,47 +7,51 @@
 #include <fstream>
 using namespace std;
 
-Mesh::Mesh(const vector<Vertex>& vertices, const vector<GLuint>& indices) {
-	indexCount = indices.size();
-
+void Mesh::SetupMesh(const vector<Vertex>& vertices, const vector<SubMeshData>& subMeshDataList) {
 	minPos = vec3{ FLT_MAX };
 	maxPos = vec3{ -FLT_MAX };
 
-	//버텍스 데이터에서 최소, 최대 좌표 계산
 	for (const auto& vertex : vertices) {
 		minPos = glm::min(minPos, vertex.position);
 		maxPos = glm::max(maxPos, vertex.position);
 	}
 
-	//VAO 객체 생성 및 바인딩
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	//VBO 객체 생성 및 바인딩
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	//EBO 객체 생성 및 바인딩 및 데이터 설정
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-
-	//버텍스 데이터 설정
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-	//버텍스 좌표: 속성 0
+	// 버텍스 속성 설정
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 	glEnableVertexAttribArray(0);
 
-	//버텍스 색상: 속성 1
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 	glEnableVertexAttribArray(1);
 
-	//버텍스 노말: 속성 2
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 	glEnableVertexAttribArray(2);
 
-	// VAO 바인딩 해제
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+	glEnableVertexAttribArray(3);
+
+	// 서브메쉬별 EBO 생성
+	subMeshes.clear();
+	for (const auto& subData : subMeshDataList) {
+		if (subData.indices.empty()) continue;
+
+		SubMesh sub{};
+		sub.materialName = subData.materialName;
+		sub.indexCount = static_cast<GLsizei>(subData.indices.size());
+
+		glGenBuffers(1, &sub.EBO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sub.EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, subData.indices.size() * sizeof(GLuint), subData.indices.data(), GL_STATIC_DRAW);
+
+		subMeshes.push_back(sub);
+	}
+
 	glBindVertexArray(0);
 }
 
@@ -57,7 +60,7 @@ Mesh::Mesh(const string& objFile) {
 
 	ifstream in{ path };
 	if (not in) {
-		cout << "파일을 열 수 없습니다." << endl;
+		cout << "파일을 열 수 없습니다: " << path << endl;
 		system("pause");
 		exit(1);
 	}
@@ -73,50 +76,11 @@ Mesh::Mesh(const string& objFile) {
 		if (!words.empty()) data.push_back(words);
 	}
 
-	vector<Vertex> vertices = GetVerticesFromObj(data);
-	vector<GLuint> indices = GetIndicesFromObj(data);
+	vector<Vertex> vertices;
+	vector<SubMeshData> subMeshDataList;
+	LoadObjMeshData(data, vertices, subMeshDataList);
 
-	indexCount = indices.size();
-
-	minPos = vec3{ FLT_MAX };
-	maxPos = vec3{ -FLT_MAX };
-
-	//버텍스 데이터에서 최소, 최대 좌표 계산
-	for (const auto& vertex : vertices) {
-		minPos = glm::min(minPos, vertex.position);
-		maxPos = glm::max(maxPos, vertex.position);
-	}
-
-	//VAO 객체 생성 및 바인딩
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
-	//VBO 객체 생성 및 바인딩
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	//EBO 객체 생성 및 바인딩 및 데이터 설정
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-
-	//버텍스 데이터 설정
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-
-	//버텍스 좌표: 속성 0
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-	glEnableVertexAttribArray(0);
-
-	//버텍스 색상: 속성 1
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-	glEnableVertexAttribArray(1);
-
-	//버텍스 노말: 속성 2
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-	glEnableVertexAttribArray(2);
-
-	// VAO 바인딩 해제
-	glBindVertexArray(0);
+	SetupMesh(vertices, subMeshDataList);
 }
 
 void Mesh::Bind() const {

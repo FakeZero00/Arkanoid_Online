@@ -2,6 +2,7 @@
 #include "AppContext.h"
 #include "Collider.h"
 #include "json.hpp"
+#include "Texture.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "Object.h"

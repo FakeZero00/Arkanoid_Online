@@ -14,6 +14,7 @@ public:
 	vector<Material*> materials;
 
 	MeshRenderer3D(Mesh* mesh, Material* material);
+	MeshRenderer3D(Mesh* mesh, const vector<Material*>& materials);
 
 	void Render(Camera* activeCamera) override;
 

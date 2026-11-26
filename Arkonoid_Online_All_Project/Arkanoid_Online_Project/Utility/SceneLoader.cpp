@@ -67,6 +67,15 @@ void SceneLoader::LoadScene(AppContext& ctx, const string& sceneFile) {
 			}
 		}
 	}
+
+	//[Pass 5] isValid Àû¿ë
+	for (const auto& objData : sceneData["Objects"]) {
+		string name = objData["name"];
+		Object* obj = spawnedObjects[name];
+		bool isValid = objData["isValid"];
+
+		obj->isValid = isValid;
+	}
 }
 
 void SceneLoader::AttachComponent(Object* obj, const json& compData, map<string, Object*> spawnedObjects) {

@@ -1,8 +1,8 @@
 #include "Light.h"
 #include "Object.h"
 
-void Light::Update(float deltaTime) {
-	// Update logic for the light component can be implemented here
+void Light::Awake() {
+	gameObject->ctx.lights.push_back(this);
 }
 
 Component* Light::CreateFromJson(Object* obj, const json& props, const map<string, Object*>& spawnedObjects) {
@@ -23,6 +23,12 @@ Component* Light::CreateFromJson(Object* obj, const json& props, const map<strin
 	if (props.contains("intensity")) {
 		light->intensity = props["intensity"];
 	}
+
+	// Spotlight 및 감쇠 속성 로드
+	if (props.contains("radius")) light->radius = props["constant"];
+
+	if (props.contains("cutOff")) light->cutOff = props["cutOff"];
+	if (props.contains("outerCutOff")) light->outerCutOff = props["outerCutOff"];
 
 	return light;
 }

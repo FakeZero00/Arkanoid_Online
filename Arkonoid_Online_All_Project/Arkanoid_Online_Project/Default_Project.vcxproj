@@ -48,6 +48,7 @@
     <ClInclude Include="Data_Structure\Object.h" />
     <ClInclude Include="Data_Structure\Scene.h" />
     <ClInclude Include="Data_Structure\ScreenSize.h" />
+    <ClInclude Include="Data_Structure\Texture.h" />
     <ClInclude Include="Data_Structure\Vertex.h" />
     <ClInclude Include="Default_Scene.h" />
     <ClInclude Include="resource.h" />
@@ -62,6 +63,7 @@
     <ClInclude Include="Utility\ObjImporter.h" />
     <ClInclude Include="Utility\SceneLoader.h" />
     <ClInclude Include="Utility\ShaderManager.h" />
+    <ClInclude Include="Utility\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Network\Room.cpp" />
@@ -78,6 +80,7 @@
     <ClCompile Include="Data_Structure\Mesh.cpp" />
     <ClCompile Include="Data_Structure\Object.cpp" />
     <ClCompile Include="Data_Structure\Scene.cpp" />
+    <ClCompile Include="Data_Structure\Texture.cpp" />
     <ClCompile Include="Default_Scene.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Script\BallController.cpp" />

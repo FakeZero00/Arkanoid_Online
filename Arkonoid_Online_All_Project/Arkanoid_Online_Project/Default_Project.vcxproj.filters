@@ -186,6 +186,12 @@
     <ClInclude Include="..\Network\AllNetworkLib.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Data_Structure\Texture.h">
+      <Filter>Data_Structure\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\stb_image.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Component\MeshRenderer3D.cpp">
@@ -265,6 +271,9 @@
     </ClCompile>
     <ClCompile Include="..\Network\Room.cpp">
       <Filter>Network\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Data_Structure\Texture.cpp">
+      <Filter>Data_Structure\Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

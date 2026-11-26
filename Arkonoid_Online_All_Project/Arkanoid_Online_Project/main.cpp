@@ -31,6 +31,7 @@ ScreenSize screenSize{ 1920, 1080 };
 //Mesh, Material 객체 캐시
 map<string, Mesh*> meshChache;
 map<string, Material*> materialChache;
+map<string, Texture*> textureChache;
 
 ////////////////////////////////////////
 //윈도우 다이얼로그 관련 변수, 함수
@@ -520,6 +521,10 @@ void DrawScene(GLFWwindow* window)
 {
 	AppContext* ctx = static_cast<AppContext*>(glfwGetWindowUserPointer(window));
 
+	//버퍼 초기화
+	/*glClearColor(ctx->bgColor.r, ctx->bgColor.g, ctx->bgColor.b, ctx->bgColor.a);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/
+
 	//활성화 되어 있는 카메라 추출
 	vector<Camera*> activeCameras;
 	for (Camera* cam : ctx->cameras) {
@@ -537,7 +542,7 @@ void DrawScene(GLFWwindow* window)
 	//카메라 우선순위에 따라 정렬
 	stable_sort(activeCameras.begin(), activeCameras.end(), [](Camera* a, Camera* b) {
 		return a->priority < b->priority;
-	});
+		});
 
 	//렌더링 큐 생성
 	vector<Object*> renderQueue;
@@ -587,7 +592,7 @@ void DrawScene(GLFWwindow* window)
 
 		// 현재 그리려는 카메라 객체를 전달하여 렌더링
 		for (auto& obj : renderQueue) {
-			obj->Render(cam);
+			if (obj->isValid) obj->Render(cam);
 		}
 	}
 
