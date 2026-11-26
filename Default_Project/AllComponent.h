@@ -7,5 +7,6 @@
 #include "Rigidbody.h"
 #include "BoxCollider.h"
 #include "SphereCollider.h"
+#include "Light.h"
 
 #include "SceneCamera.h"

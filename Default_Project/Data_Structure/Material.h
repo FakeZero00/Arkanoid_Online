@@ -1,4 +1,5 @@
 #pragma once
+#include "Texture.h"
 #include <map>
 #include <string>
 #include <gl/glew.h>
@@ -17,11 +18,14 @@ public:
 	map<string, vec2> vec2Uniforms;
 	map<string, vec3> vec3Uniforms;
 	map<string, vec4> vec4Uniforms;
+	map<string, Texture*> textureUniforms;
 
 	//Pass 제어 변수
 	bool isOutline = false;
 
-	Material(GLuint programID) : shaderProgram(programID) {}
+	Material(GLuint programID) : shaderProgram(programID) {
+		SetVec4("tColor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	}
 
 	void Use();
 
@@ -31,6 +35,7 @@ public:
 	void SetVec2(const string& name, const vec2& value);
 	void SetVec3(const string& name, const vec3& value);
 	void SetVec4(const string& name, const vec4& value);
+	void SetTexture(const string& name, Texture* texture);
 
 	bool GetBool(const string& name);
 	int GetInt(const string& name);
@@ -38,4 +43,5 @@ public:
 	vec2 GetVec2(const string& name);
 	vec3 GetVec3(const string& name);
 	vec4 GetVec4(const string& name);
+	Texture* GetTexture(const string& name);
 };

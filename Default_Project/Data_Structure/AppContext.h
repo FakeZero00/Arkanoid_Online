@@ -3,6 +3,7 @@
 #include <memory>
 #include <gl/glm/glm.hpp>
 #include "InputManager.h"
+#include "Light.h"
 #include "Collider.h"
 using namespace glm;
 
@@ -25,4 +26,6 @@ struct AppContext {
 
 	vector<Camera*> cameras;								//씬에 존재하는 카메라들을 저장하는 벡터
 	vector<Camera*> pendingCameras;							//제거할 카메라를 저장하는 벡터
+
+	vector<Light*> lights;									//씬에 존재하는 라이트들을 저장하는 벡터
 };

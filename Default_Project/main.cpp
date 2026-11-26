@@ -23,6 +23,7 @@ ScreenSize screenSize{ 1920, 1080 };
 //Mesh, Material 객체 캐시
 map<string, Mesh*> meshChache;
 map<string, Material*> materialChache;
+map<string, Texture*> textureChache;
 
 int main(int argc, char** argv) {
 	//GLFW 초기화
@@ -81,12 +82,19 @@ int main(int argc, char** argv) {
 	make_fragmentShaders(fragmentShaders, "LocalPosColor_fragment.glsl");
 	make_shaderProgram("LocalPosColor", shaders, vertexShaders["LocalPosColor_vertex.glsl"], fragmentShaders["LocalPosColor_fragment.glsl"]);
 
-	//////////////////Mesh, Material 캐시 초기화//////////////////
+	//////////////////Mesh, Texture, Material 캐시 초기화//////////////////
 
 	meshChache["Cube"] = new Mesh("Default_Cube.obj");
 	meshChache["Pyramid"] = new Mesh("Default_Pyramid.obj");
 	meshChache["Sphere"] = new Mesh("Default_Sphere.obj");
 	meshChache["Torus"] = new Mesh("Default_Torus.obj");
+	meshChache["SpotLight"] = new Mesh("Default_SpotLight.obj");
+	meshChache["MeetMat"] = new Mesh("MeetMat.obj");
+
+	textureChache["Color_Grid"] = new Texture("Color_Grid.png");
+	textureChache["MeetMat_Head"] = new Texture("MeetMat_Head_BaseColor.png");
+	textureChache["MeetMat_Body"] = new Texture("MeetMat_Body_BaseColor.png");
+	textureChache["MeetMat_Base"] = new Texture("MeetMat_Base_BaseColor.png");
 
 	Material* darkGreen = new Material(shaders["Standard"]);
 	darkGreen->SetVec4("tColor", vec4(0.29f, 0.31f, 0.29f, 1.0f));
@@ -108,6 +116,14 @@ int main(int argc, char** argv) {
 	orange->SetVec4("tColor", vec4(1.0f, 0.5f, 0.0f, 1.0f));
 	Material* purple = new Material(shaders["Standard"]);
 	purple->SetVec4("tColor", vec4(0.5f, 0.0f, 1.0f, 1.0f));
+	Material* colorGrid = new Material(shaders["Standard"]);
+	colorGrid->SetTexture("mainTex", textureChache["Color_Grid"]);
+	Material* meetMat_Head = new Material(shaders["Standard"]);
+	meetMat_Head->SetTexture("mainTex", textureChache["MeetMat_Head"]);
+	Material* meetMat_Body = new Material(shaders["Standard"]);
+	meetMat_Body->SetTexture("mainTex", textureChache["MeetMat_Body"]);
+	Material* meetMat_Base = new Material(shaders["Standard"]);
+	meetMat_Base->SetTexture("mainTex", textureChache["MeetMat_Base"]);
 
 	materialChache["LocalPosColor"] = new Material(shaders["LocalPosColor"]);
 	materialChache["DarkGreen"] = darkGreen;
@@ -120,6 +136,10 @@ int main(int argc, char** argv) {
 	materialChache["Blue"] = blue;
 	materialChache["Orange"] = orange;
 	materialChache["Purple"] = purple;
+	materialChache["ColorGrid"] = colorGrid;
+	materialChache["MeetMat_Head"] = meetMat_Head; 
+	materialChache["MeetMat_Body"] = meetMat_Body;
+	materialChache["MeetMat_Base"] = meetMat_Base;
 
 	//////////////////사용자 정의 초기화////////////////////
 
@@ -370,7 +390,7 @@ void DrawScene(GLFWwindow* window)
 
 		// 현재 그리려는 카메라 객체를 전달하여 렌더링
 		for (auto& obj : renderQueue) {
-			obj->Render(cam);
+			if (obj->isValid) obj->Render(cam);
 		}
 	}
 

@@ -44,6 +44,29 @@ void Material::Use() {
 		if (vec4Loc == -1) continue;
 		glUniform4f(vec4Loc, pair.second.x, pair.second.y, pair.second.z, pair.second.w);
 	}
+
+	//저장된 Texture 값들을 셰이더의 uniform으로 일괄 전송
+	// 7. Texture Uniform 전송 (텍스처 유닛 자동 증가 및 nullptr 방어)
+	GLuint texUnit = 0;
+	bool hasValidTexture = false;
+
+	for (const auto& pair : textureUniforms) {
+		if (pair.second == nullptr) continue;
+
+		GLint texLoc = glGetUniformLocation(shaderProgram, pair.first.c_str());
+		if (texLoc == -1) continue;
+
+		pair.second->Bind(texUnit);
+		glUniform1i(texLoc, texUnit);
+		texUnit++;
+		hasValidTexture = true;
+	}
+
+	// 텍스처 유무에 따라 셰이더의 useTexture 상태를 항상 명시적으로 갱신
+	GLint useTexLoc = glGetUniformLocation(shaderProgram, "useTexture");
+	if (useTexLoc != -1) {
+		glUniform1i(useTexLoc, hasValidTexture ? 1 : 0);
+	}
 }
 
 //세터 함수
@@ -71,6 +94,11 @@ void Material::SetVec4(const string& name, const vec4& value) {
 	vec4Uniforms[name] = value;
 }
 
+void Material::SetTexture(const string& name, Texture* texture) {
+	if (texture == nullptr) textureUniforms.erase(name);
+	else textureUniforms[name] = texture;
+}
+
 //게터 함수
 bool Material::GetBool(const string& name) {
 	return boolUniforms[name];
@@ -94,4 +122,8 @@ vec3 Material::GetVec3(const string& name) {
 
 vec4 Material::GetVec4(const string& name) {
 	return vec4Uniforms[name];
+}
+
+Texture* Material::GetTexture(const string& name) {
+	return textureUniforms[name];
 }

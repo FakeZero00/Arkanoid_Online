@@ -10,6 +10,7 @@ public:
 
 	Object* Instantiate(AppContext& ctx, string objName);
 	Object* FindObject(AppContext& ctx, string objName);
+	Object* FindObject(AppContext& ctx, int objID);
 
 	virtual void LoadScene(AppContext& ctx) {}
 };

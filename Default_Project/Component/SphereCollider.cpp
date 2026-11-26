@@ -17,8 +17,7 @@ SphereCollider::SphereCollider(vec3 center, float radius) : Collider(ColliderTyp
 void SphereCollider::RecalculateCollision() {
 	if (!gameObject) return;
 
-	Transform* tr = gameObject->GetComponent<Transform>();
-	if (!tr) return;
+	if (!tr) tr = gameObject->GetComponent<Transform>();
 
 	// 1. 월드 좌표계 중심 계산
 	worldCenter = vec3(tr->worldMatrix * vec4(center, 1.0f));
@@ -104,6 +103,8 @@ void SphereCollider::Render(Camera* activeCamera) {
 }
 
 void SphereCollider::Start() {
+	tr = gameObject->GetComponent<Transform>();
+
 	RecalculateCollision();
 
 	gameObject->ctx.pendingCollisionObjects.push_back(this);

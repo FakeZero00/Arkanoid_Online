@@ -28,6 +28,8 @@ bool BoxCollider::MouseCollide(vec2 mousePos) {
 void BoxCollider::RecalculateCollision() {
 	if (not gameObject) return;
 
+	if (!tr) tr = gameObject->GetComponent<Transform>();
+
 	//메시 데이터가 없을 때의 기본 박스 범위 설정
 	vec3 meshMin{ -0.5f };
 	vec3 meshMax{ 0.5f };
@@ -64,8 +66,8 @@ void BoxCollider::RecalculateCollision() {
 	for (int i = 0; i < 8; ++i) {
 		vec4 worldPos = tr->worldMatrix * vec4(corners[i], 1.0f);
 
-		minPos = min(minPos, vec3(worldPos));
-		maxPos = max(maxPos, vec3(worldPos));
+		minPos = glm::min(minPos, vec3(worldPos));
+		maxPos = glm::max(maxPos, vec3(worldPos));
 	}
 }
 

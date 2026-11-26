@@ -2,6 +2,7 @@
   "SceneName": "Default_Scene",
   "Objects": [
     {
+	  "isValid": true,
       "name": "MainCamera",
       "parent": "",
       "transform": {
@@ -24,6 +25,7 @@
       ]
     },
 	{
+	  "isValid": true,
       "name": "MinimapCamera",
       "parent": "",
       "transform": {
@@ -46,6 +48,36 @@
       ]
     },
 	{
+	  "isValid": true,
+      "name": "Directional Light",
+      "parent": "",
+      "transform": {
+        "position": [ 0.0, 10.0, 10.0 ],
+        "rotation": [ 150.0, 0.0, 0.0 ],
+        "scale": [ 1.0, 1.0, 1.0 ]
+      },
+      "components": [
+		{
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "SpotLight",
+            "materials":[
+				"Green"
+			]
+          }
+        },
+        {
+          "type": "Light",
+          "properties": {
+            "lightType": "Directional",
+            "lightColor": [1.0, 1.0, 1.0, 1.0],
+            "intensity": 1.0
+          }
+        }
+      ]
+    },
+	{
+	  "isValid": true,
       "name": "Test",
       "parent": "",
       "transform": {
@@ -68,12 +100,13 @@
 		  "properties": {
 			  "center": [ 0.0, 0.0, 0.0 ],
 			  "size": [ 1.0, 1.0, 1.0 ],
-			  "isDebug": true
+			  "isDebug": false
 		  }
         }
       ]
     },
 	{
+	  "isValid": true,
       "name": "Test2",
       "parent": "",
       "transform": {
@@ -87,7 +120,7 @@
           "properties": {
             "mesh": "Sphere",
             "materials":[
-				"Blue"
+				"ColorGrid"
 			]
           }
         },
@@ -96,7 +129,7 @@
 		  "properties": {
 			  "center": [ 0.0, 0.0, 0.0 ],
 			  "radius": 1.0,
-			  "isDebug": true
+			  "isDebug": false
 		  }
         },
 		{
@@ -105,6 +138,29 @@
 		{
 			"type": "TestScript"
 		}
+      ]
+    },
+	{
+	  "isValid": true,
+      "name": "MeetMat",
+      "parent": "",
+      "transform": {
+        "position": [ 5.0, 0.0, 0.0 ],
+        "rotation": [ 0.0, 0.0, 0.0 ],
+        "scale": [ 0.4, 0.4, 0.4 ]
+      },
+      "components": [
+        {
+          "type": "MeshRenderer3D",
+          "properties": {
+            "mesh": "MeetMat",
+            "materials":[
+				"MeetMat_Head",
+				"MeetMat_Body",
+				"MeetMat_Base"
+			]
+          }
+        }
       ]
     }
   ]
