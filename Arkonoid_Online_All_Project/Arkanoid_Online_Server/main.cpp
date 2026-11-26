@@ -1,4 +1,5 @@
 #include "AllNetworkLib.h"
+#include "UdpRelay.h"
 #include <iostream>
 #include <map>
 #include <vector>
@@ -44,6 +45,14 @@ int main() {
 	if (retval == SOCKET_ERROR) err_quit("listen()");
 
 	//데이터 통신에 사용할 변수
+	UdpRelay udpRelay;
+	if (!udpRelay.Start()) {
+		udpRelay.Stop();
+		closesocket(listen_sock);
+		WSACleanup();
+		return 1;
+	}
+
 	SOCKET client_sock;
 	struct sockaddr_in clientaddr;
 	int addrlen;
@@ -71,6 +80,11 @@ int main() {
 		HANDLE h = CreateThread(NULL, 0, SessionThread, session, 0, NULL);
 		if (h) CloseHandle(h);
 	}
+
+	udpRelay.Stop();
+	closesocket(listen_sock);
+	WSACleanup();
+	return 0;
 }
 
 DWORD WINAPI SessionThread(LPVOID arg)

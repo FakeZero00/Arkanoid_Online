@@ -23,6 +23,7 @@
     <ClInclude Include="..\Network\Network.h" />
     <ClInclude Include="..\Network\PlayerGameState.h" />
     <ClInclude Include="..\Network\Protocol.h" />
+    <ClInclude Include="..\Network\UdpPositionProtocol.h" />
     <ClInclude Include="..\Network\Room.h" />
     <ClInclude Include="..\Network\RoomState.h" />
     <ClInclude Include="..\Network\Session.h" />
@@ -58,6 +59,7 @@
     <ClInclude Include="Script\BlockGenerator.h" />
     <ClInclude Include="Utility\ColliderManager.h" />
     <ClInclude Include="Utility\GameNet.h" />
+    <ClInclude Include="Utility\UdpClient.h" />
     <ClInclude Include="Utility\InputManager.h" />
     <ClInclude Include="Utility\ObjImporter.h" />
     <ClInclude Include="Utility\SceneLoader.h" />
@@ -87,6 +89,7 @@
     <ClCompile Include="Script\BlockGenerator.cpp" />
     <ClCompile Include="Utility\ColliderManager.cpp" />
     <ClCompile Include="Utility\GameNet.cpp" />
+    <ClCompile Include="Utility\UdpClient.cpp" />
     <ClCompile Include="Utility\ObjImporter.cpp" />
     <ClCompile Include="Utility\SceneLoader.cpp" />
     <ClCompile Include="Utility\ShaderManager.cpp" />

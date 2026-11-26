@@ -27,6 +27,9 @@
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="UdpRelay.cpp">
+      <Filter>Network\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\Network\Room.cpp">
       <Filter>Network\Source</Filter>
     </ClCompile>
@@ -36,6 +39,12 @@
       <Filter>Network\Header</Filter>
     </ClInclude>
     <ClInclude Include="..\Network\PlayerGameState.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="UdpRelay.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Network\UdpPositionProtocol.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
     <ClInclude Include="..\Network\Protocol.h">

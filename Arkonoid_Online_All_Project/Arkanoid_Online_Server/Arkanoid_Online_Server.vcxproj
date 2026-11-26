@@ -147,12 +147,15 @@
   <ItemGroup>
     <ClCompile Include="..\Network\Room.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="UdpRelay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Network\AllNetworkLib.h" />
     <ClInclude Include="..\Network\Network.h" />
     <ClInclude Include="..\Network\PlayerGameState.h" />
     <ClInclude Include="..\Network\Protocol.h" />
+    <ClInclude Include="..\Network\UdpPositionProtocol.h" />
+    <ClInclude Include="UdpRelay.h" />
     <ClInclude Include="..\Network\Room.h" />
     <ClInclude Include="..\Network\RoomState.h" />
     <ClInclude Include="..\Network\Session.h" />

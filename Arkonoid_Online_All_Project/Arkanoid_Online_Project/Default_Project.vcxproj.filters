@@ -123,6 +123,9 @@
     <ClInclude Include="Utility\SceneLoader.h">
       <Filter>Utility\Header</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\UdpClient.h">
+      <Filter>Utility\Header</Filter>
+    </ClInclude>
     <ClInclude Include="Utility\GameNet.h">
       <Filter>Utility\Header</Filter>
     </ClInclude>
@@ -169,6 +172,9 @@
       <Filter>Network\Header</Filter>
     </ClInclude>
     <ClInclude Include="..\Network\PlayerGameState.h">
+      <Filter>Network\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Network\UdpPositionProtocol.h">
       <Filter>Network\Header</Filter>
     </ClInclude>
     <ClInclude Include="..\Network\Protocol.h">
@@ -234,6 +240,9 @@
       <Filter>Utility\Source</Filter>
     </ClCompile>
     <ClCompile Include="Utility\SceneLoader.cpp">
+      <Filter>Utility\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\UdpClient.cpp">
       <Filter>Utility\Source</Filter>
     </ClCompile>
     <ClCompile Include="Utility\GameNet.cpp">

@@ -1,9 +1,11 @@
 #include "AllNetworkLib.h"
 #include "Common.h"
 #include "resource.h"
+#include "Utility/UdpClient.h"
 #include <thread>
 #include <tchar.h>
 #include <locale>
+#include <cstring>
 using namespace std;
 
 #define SERVERIP	"127.0.0.1"
@@ -129,11 +131,15 @@ DWORD WINAPI RunRoomDialogThread(LPVOID lpParam) {
 }
 
 int main(int argc, char** argv) {
+	const bool skipLobby = argc > 1 && std::strcmp(argv[1], "--skip-lobby") == 0;
 	std::locale::global(std::locale(""));
 	std::wcout.imbue(std::locale());
 
 	//다이얼로그 스레드
-	HANDLE hThread = CreateThread(NULL, 0, RunDialogThread, NULL, 0, NULL);
+	if (!skipLobby) {
+		HANDLE hThread = CreateThread(NULL, 0, RunDialogThread, NULL, 0, NULL);
+		if (hThread) CloseHandle(hThread);
+	}
 
 	//GLFW 초기화
 	if (!glfwInit()) {
@@ -147,7 +153,8 @@ int main(int argc, char** argv) {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	//윈도우 생성
-	GLFWwindow* window = glfwCreateWindow(screenSize.width, screenSize.height, "OpenGL Window", nullptr, nullptr);
+	const char* windowTitle = skipLobby ? "OpenGL Window (No Lobby)" : "OpenGL Window";
+	GLFWwindow* window = glfwCreateWindow(screenSize.width, screenSize.height, windowTitle, nullptr, nullptr);
 	if (!window) {
 		cerr << "윈도우 생성 실패" << endl;
 		glfwTerminate();
@@ -268,6 +275,31 @@ int main(int argc, char** argv) {
 	Default_Scene defaultScene{screenSize};
 	defaultScene.LoadScene(ctx);
 
+	UdpClient udpClient;
+	Object* pBous = nullptr;
+	Object* pBall = nullptr;
+	Object* oBous = nullptr;
+	Object* oBall = nullptr;
+	std::uint32_t lastBousSequence = 0;
+	std::uint32_t lastBallSequence = 0;
+	auto nextUdpSend = std::chrono::steady_clock::now();
+	if (skipLobby) {
+		pBous = defaultScene.FindObject(ctx, "pBous");
+		pBall = defaultScene.FindObject(ctx, "pBall");
+		oBous = defaultScene.FindObject(ctx, "oBous");
+		oBall = defaultScene.FindObject(ctx, "oBall");
+
+		const bool hasUdpObjects = pBous && pBall && oBous && oBall;
+		if (!hasUdpObjects) {
+			cerr << "UDP test requires pBous, pBall, oBous, and oBall." << endl;
+		}
+		if (!hasUdpObjects || !udpClient.Start(argc > 2 ? argv[2] : SERVERIP)) {
+			glfwDestroyWindow(window);
+			glfwTerminate();
+			return 1;
+		}
+	}
+
 	////////////////////////메인 루프////////////////////////
 
 	while (!glfwWindowShouldClose(window)) {
@@ -286,6 +318,7 @@ int main(int argc, char** argv) {
 
 		//Start 처리
 		for (auto& obj : ctx.Hierarchy) {
+			if (obj.get() == oBous || obj.get() == oBall) continue;
 			if (obj->isValid && !obj->isStarted) {
 				obj->isStarted = true;
 				obj->Start();
@@ -294,11 +327,43 @@ int main(int argc, char** argv) {
 
 		//Update 처리
 		for (auto& obj : ctx.Hierarchy) {
+			if (obj.get() == oBous || obj.get() == oBall) continue;
 			if (obj->isValid) obj->Update(ctx.deltaTime);
 		}
 
 		//충돌 감지
 		colliderManager.Update();
+
+		if (skipLobby) {
+			const auto now = std::chrono::steady_clock::now();
+			if (now >= nextUdpSend) {
+				const auto& bousPosition = pBous->GetComponent<Transform>()->position;
+				const auto& ballPosition = pBall->GetComponent<Transform>()->position;
+				udpClient.QueuePosition(pBous->id, bousPosition.x, bousPosition.y);
+				udpClient.QueuePosition(pBall->id, ballPosition.x, ballPosition.y);
+				nextUdpSend = now + UdpClient::SendInterval;
+			}
+
+			udp::Position position{};
+			while (udpClient.TryReceive(position)) {
+				Object* remote;
+				if (position.objectId == pBous->id) {
+					remote = oBous;
+				}
+				else if (position.objectId == pBall->id) {
+					remote = oBall;
+				}
+				else {
+					continue;
+				}
+
+				auto& lastSequence = remote == oBous ? lastBousSequence : lastBallSequence;
+				if (position.sequence < lastSequence) continue;
+				Transform* transform = remote->GetComponent<Transform>();
+				transform->SetLocalPosition(position.x, position.y, transform->position.z);
+				lastSequence = position.sequence;
+			}
+		}
 
 		//추가할 오브젝트가 있다면 Hierarchy에 추가
 		if (!ctx.pendingHierarchy.empty()) {
