@@ -6,10 +6,15 @@
 #include <cstdio>
 #include <mutex>
 #include <queue>
+#include <unordered_map>
 
 #pragma comment(lib, "ws2_32")
 
+#define DefaultTransformmapsize 30
+
 std::mutex positionMutex;
+
+std::unordered_map<std::uint32_t, Transform*> remoteTransform;
 
 namespace {
 using Clock = std::chrono::steady_clock;
@@ -78,13 +83,18 @@ DWORD WINAPI receiveRemotePositions(LPVOID) {
 
         std::lock_guard<std::mutex> lock(positionMutex);
         Transform* remote;
-        if (position.objectId == bousId) {
+        /*if (position.objectId == bousId) {
             remote = remoteBous;
         } else if (position.objectId == ballId) {
             remote = remoteBall;
         } else {
             continue;
-        }
+        }*/
+
+        auto it = remoteTransform.find(position.objectId);
+		if (it == remoteTransform.end()) continue;
+
+		remote = it->second;
 
         auto& lastSequence = remote == remoteBous ? lastBousSequence : lastBallSequence;
         if (position.sequence < lastSequence) continue;
@@ -117,7 +127,7 @@ void StopUdpClient() {
     while (!pendingPositions.empty()) pendingPositions.pop();
 }
 
-bool StartUdpClient(const char* serverIp, const udp::Position& initialBous, std::uint32_t localBallId,
+bool StartUdpClient(const char* serverIp, const udp::Position& locallBous, std::uint32_t localBallId,
     Transform* opponentBous, Transform* opponentBall) {
     if (winsockStarted) return false;
     WSADATA wsa{};
@@ -152,11 +162,18 @@ bool StartUdpClient(const char* serverIp, const udp::Position& initialBous, std:
         return false;
     }
 
-    bousId = initialBous.objectId;
+    bousId = locallBous.objectId;
     ballId = localBallId;
     remoteBous = opponentBous;
     remoteBall = opponentBall;
-    initialBousPacket = udp::encodePosition(initialBous);
+    initialBousPacket = udp::encodePosition(locallBous);
+
+    // reserve and fill map
+    remoteTransform.reserve(DefaultTransformmapsize);
+    remoteTransform.insert({ locallBous.objectId, remoteBous });
+	remoteTransform.insert({ localBallId, remoteBall });
+
+    //
 
     running = true;
     receiveThread = CreateThread(nullptr, 0, receiveRemotePositions, nullptr, 0, nullptr);
