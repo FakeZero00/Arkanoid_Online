@@ -201,23 +201,48 @@ void Room::TimerLoop()
             TimeSyncPacket pkt = MakeTimeSync(remain);
             a->Send(pkt);
             b->Send(pkt);
-            printf("[타이머] 남은 시간 %u초 → 두 클라이언트에 전송\n", remain);
+            printf("[타이머] 남은 시간 %u초 -> 두 클라이언트에 전송\n", remain);
         }
     }
-    printf("[타이머] 시간 종료 → %ums 동안 제한시간 안의 이벤트만 받음\n", GRACE_MS);
+    printf("[타이머] 시간 종료 -> %ums 동안 제한시간 안의 이벤트만 받음\n", GRACE_MS);
 
-    if (!WaitUntil(startTick + TIME_LIMIT_SEC * 1000ULL + GRACE_MS)) return;
+    if (!WaitUntil(startTick + TIME_LIMIT_SEC * 1000ULL + GRACE_MS)) {
+        printf("[타이머] 게임이 끝나서 타이머 종료\n");
+        return;
+    }
+    printf("[타이머] 유예 끝\n");
+    EndGame(REASON_TIME_OVER);          // 이미 다른 이유로 끝났으면 EndGame 안에서 아무것도 안 함
+}
 
+// 게임 종료 ------------------------------------------------------------------------
+// 확인과 변경을 같은 잠금 안에서 → 시간 종료와 모두 클리어가 겹쳐도 결과는 한 번만 나감
+void Room::EndGame(EndReason reason)
+{
     EnterCriticalSection(&cs);
-    bool ended = (state == RoomState::TimeUp);
-    if (ended) state = RoomState::Ended;
+    bool ok = (state == RoomState::Playing || state == RoomState::TimeUp);
+    if (ok) state = RoomState::Ended;
+    Session* a  = sessions[0];
+    Session* b  = sessions[1];
     uint32_t s0 = states[0].score, s1 = states[1].score;
-    int id0 = sessions[0]->GetId(), id1 = sessions[1]->GetId();
     LeaveCriticalSection(&cs);
 
-    if (ended)
-        printf("[타이머] 유예 끝 → 게임 종료. 세션 %d %u점 : 세션 %d %u점 (승패 판정 · 결과 전송은 11/26 EndGame)\n",
-            id0, s0, id1, s1);
+    if (!ok) return;                    // 이미 끝남 (상대 이탈, 다른 종료 이유)
+
+    SetEvent(hStop);                    // 모두 클리어로 끝나면 타이머를 바로 깨워서 종료 (시간 종료면 이미 끝나는 중이라 영향 없음)
+
+    // 점수만 비교 (Level_Design: 점수가 높은 쪽 승리, 같으면 무승부)
+    GameResult r0, r1;
+    if      (s0 > s1) { r0 = RESULT_WIN;  r1 = RESULT_LOSE; }
+    else if (s0 < s1) { r0 = RESULT_LOSE; r1 = RESULT_WIN;  }
+    else              { r0 = RESULT_DRAW; r1 = RESULT_DRAW; }
+
+    a->Send(MakeGameEnd(r0, reason, s0, s1));   // 받는 사람 기준: 내 점수, 상대 점수
+    b->Send(MakeGameEnd(r1, reason, s1, s0));
+
+    static const char* RESULT_TEXT[] = { "패배", "승리", "무승부" };
+    static const char* REASON_TEXT[] = { "시간 종료", "모두 클리어", "상대 이탈" };
+    printf("[결과] %s: 세션 %d %s (%u점) : 세션 %d %s (%u점)\n", REASON_TEXT[reason],
+        a->GetId(), RESULT_TEXT[r0], s0, b->GetId(), RESULT_TEXT[r1], s1);
 }
 
 void Room::OnGameEvent(Session* from, GameEventPacket pkt)
@@ -268,10 +293,12 @@ void Room::OnGameEvent(Session* from, GameEventPacket pkt)
         after.cleared ? " (클리어)" : "", after.finished ? " (모든 스테이지 완료)" : "");
     if (justFinished)
         printf("[상태] 세션 %d 모든 스테이지 클리어%s\n", from->GetId(),
-            bothFinished ? " → 두 사람 모두 완료 (종료 판정은 11/26 일정)" : "");
+            bothFinished ? " → 두 사람 모두 완료, 게임 종료" : " → 상대가 끝내거나 시간이 끝날 때까지 대기");
 
     pkt.type = SC_OPP_EVENT;       // 본문은 그대로, type만 바꿈
-    opp->Send(pkt);
+    opp->Send(pkt);                // 마지막 클리어 이벤트를 먼저 중계한 뒤 결과 전송
+
+    if (bothFinished && justFinished) EndGame(REASON_ALL_CLEAR);
 }
 
 void Room::OnLeave(Session* s)

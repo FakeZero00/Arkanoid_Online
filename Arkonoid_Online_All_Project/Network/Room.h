@@ -49,10 +49,11 @@ public:
 
 private:
     int IndexOf(Session* s) const;          // 잠금을 잡은 상태에서만 호출
+    void EndGame(EndReason reason);         // Playing/TimeUp → Ended, 점수 비교 후 두 사람에게 SC_GAME_END (한 번만)
 
     // 타이머 (방마다 스레드 1개) -------------------------------------------------
     static DWORD WINAPI TimerThread(LPVOID arg);
-    void TimerLoop();                       // 1초마다 남은 시간 계산, 5초마다 SC_TIME_SYNC, 0초 → TimeUp → 유예 후 Ended
+    void TimerLoop();                       // 1초마다 남은 시간 계산, 5초마다 SC_TIME_SYNC, 0초 → TimeUp → 유예 후 EndGame
     bool WaitUntil(ULONGLONG tick);         // 그 시각까지 대기. 중간에 멈추라는 신호가 오면 false
 
     Session*         sessions[2] = {};
