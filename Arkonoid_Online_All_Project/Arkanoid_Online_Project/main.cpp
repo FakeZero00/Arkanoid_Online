@@ -270,6 +270,9 @@ int main(int argc, char** argv) {
 	//시간 초기화
 	ctx.time = glfwGetTime();
 
+	// 전송할 오브젝트들의 Player_Root
+	Transform* pBousRoot = nullptr;
+
 	/////////////////////////씬 로드/////////////////////////
 
 	Default_Scene defaultScene{screenSize};
@@ -293,6 +296,13 @@ int main(int argc, char** argv) {
 			udpStarted = StartUdpClient(argc > 2 ? argv[2] : SERVERIP,
 				{ 0, pBous->id, initialBous.x, initialBous.y }, pBall->id,
 				oBous->GetComponent<Transform>(), oBall->GetComponent<Transform>());
+
+			// 전송할 오브젝트들의 Player_Root 저장
+			pBousRoot = pBous->GetComponent<Transform>();
+
+			while (pBousRoot && pBousRoot->parent) {
+				pBousRoot = pBousRoot->parent;
+			}
 		} else {
 			cerr << "UDP test requires pBous, pBall, oBous, and oBall." << endl;
 		}
@@ -302,6 +312,8 @@ int main(int argc, char** argv) {
 			return 1;
 		}
 	}
+
+	
 
 	////////////////////////메인 루프////////////////////////
 
@@ -337,13 +349,17 @@ int main(int argc, char** argv) {
 		//충돌 감지
 		colliderManager.Update();
 
+
+		// UDP 전송 처리
 		if (skipLobby) {
 			const auto now = std::chrono::steady_clock::now();
 			if (now >= nextUdpSend) {
-				const auto& bousPosition = pBous->GetComponent<Transform>()->position;
-				const auto& ballPosition = pBall->GetComponent<Transform>()->position;
-				QueueUdpPosition(pBous->id, bousPosition.x, bousPosition.y);
-				QueueUdpPosition(pBall->id, ballPosition.x, ballPosition.y);
+				for (Transform* child : pBousRoot->children) {
+					if (child->gameObject && child->gameObject->isValid) {
+						const auto& childPos = child->position;
+						QueueUdpPosition(child->gameObject->id, childPos.x, childPos.y);
+					}
+				}
 				nextUdpSend = now + UdpSendInterval;
 			}
 		}
